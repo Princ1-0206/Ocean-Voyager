@@ -1,0 +1,506 @@
+{
+  "anglerfish_f0": {
+    "filename": "anglerfish_f0.png",
+    "width": 31,
+    "height": 28,
+    "frame": 0,
+    "source_y_start": 8,
+    "source_y_end": 36
+  },
+  "anglerfish_f1": {
+    "filename": "anglerfish_f1.png",
+    "width": 33,
+    "height": 29,
+    "frame": 1,
+    "source_y_start": 8,
+    "source_y_end": 36
+  },
+  "jellyfish_1_f0": {
+    "filename": "jellyfish_1_f0.png",
+    "width": 34,
+    "height": 31,
+    "frame": 0,
+    "source_y_start": 56,
+    "source_y_end": 86
+  },
+  "jellyfish_1_f1": {
+    "filename": "jellyfish_1_f1.png",
+    "width": 35,
+    "height": 31,
+    "frame": 1,
+    "source_y_start": 56,
+    "source_y_end": 86
+  },
+  "squid_f0": {
+    "filename": "squid_f0.png",
+    "width": 20,
+    "height": 34,
+    "frame": 0,
+    "source_y_start": 103,
+    "source_y_end": 137
+  },
+  "squid_f1": {
+    "filename": "squid_f1.png",
+    "width": 19,
+    "height": 34,
+    "frame": 1,
+    "source_y_start": 103,
+    "source_y_end": 137
+  },
+  "jellyfish_2_f0": {
+    "filename": "jellyfish_2_f0.png",
+    "width": 31,
+    "height": 26,
+    "frame": 0,
+    "source_y_start": 151,
+    "source_y_end": 179
+  },
+  "jellyfish_2_f1": {
+    "filename": "jellyfish_2_f1.png",
+    "width": 31,
+    "height": 29,
+    "frame": 1,
+    "source_y_start": 151,
+    "source_y_end": 179
+  },
+  "pufferfish_f0": {
+    "filename": "pufferfish_f0.png",
+    "width": 21,
+    "height": 35,
+    "frame": 0,
+    "source_y_start": 200,
+    "source_y_end": 234
+  },
+  "pufferfish_f1": {
+    "filename": "pufferfish_f1.png",
+    "width": 22,
+    "height": 35,
+    "frame": 1,
+    "source_y_start": 200,
+    "source_y_end": 234
+  },
+  "sea_turtle_f0": {
+    "filename": "sea_turtle_f0.png",
+    "width": 45,
+    "height": 42,
+    "frame": 0,
+    "source_y_start": 242,
+    "source_y_end": 287
+  },
+  "sea_turtle_f1": {
+    "filename": "sea_turtle_f1.png",
+    "width": 29,
+    "height": 46,
+    "frame": 1,
+    "source_y_start": 242,
+    "source_y_end": 287
+  },
+  "seahorse_f0": {
+    "filename": "seahorse_f0.png",
+    "width": 39,
+    "height": 27,
+    "frame": 0,
+    "source_y_start": 299,
+    "source_y_end": 325
+  },
+  "seahorse_f1": {
+    "filename": "seahorse_f1.png",
+    "width": 37,
+    "height": 27,
+    "frame": 1,
+    "source_y_start": 299,
+    "source_y_end": 325
+  },
+  "manta_ray_f0": {
+    "filename": "manta_ray_f0.png",
+    "width": 32,
+    "height": 44,
+    "frame": 0,
+    "source_y_start": 337,
+    "source_y_end": 380
+  },
+  "manta_ray_f1": {
+    "filename": "manta_ray_f1.png",
+    "width": 31,
+    "height": 44,
+    "frame": 1,
+    "source_y_start": 337,
+    "source_y_end": 380
+  },
+  "crab_f0": {
+    "filename": "crab_f0.png",
+    "width": 36,
+    "height": 30,
+    "frame": 0,
+    "source_y_start": 391,
+    "source_y_end": 421
+  },
+  "crab_f1": {
+    "filename": "crab_f1.png",
+    "width": 36,
+    "height": 30,
+    "frame": 1,
+    "source_y_start": 391,
+    "source_y_end": 421
+  },
+  "lobster_f0": {
+    "filename": "lobster_f0.png",
+    "width": 27,
+    "height": 29,
+    "frame": 0,
+    "source_y_start": 437,
+    "source_y_end": 469
+  },
+  "lobster_f1": {
+    "filename": "lobster_f1.png",
+    "width": 26,
+    "height": 33,
+    "frame": 1,
+    "source_y_start": 437,
+    "source_y_end": 469
+  },
+  "starfish_f1": {
+    "filename": "starfish_f1.png",
+    "width": 5,
+    "height": 2,
+    "frame": 1,
+    "source_y_start": 484,
+    "source_y_end": 485
+  },
+  "octopus_f0": {
+    "filename": "octopus_f0.png",
+    "width": 32,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 487,
+    "source_y_end": 518
+  },
+  "octopus_f1": {
+    "filename": "octopus_f1.png",
+    "width": 32,
+    "height": 32,
+    "frame": 1,
+    "source_y_start": 487,
+    "source_y_end": 518
+  },
+  "shrimp_f0": {
+    "filename": "shrimp_f0.png",
+    "width": 30,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 536,
+    "source_y_end": 567
+  },
+  "shrimp_f1": {
+    "filename": "shrimp_f1.png",
+    "width": 31,
+    "height": 32,
+    "frame": 1,
+    "source_y_start": 536,
+    "source_y_end": 567
+  },
+  "sea_snake_f0": {
+    "filename": "sea_snake_f0.png",
+    "width": 27,
+    "height": 31,
+    "frame": 0,
+    "source_y_start": 584,
+    "source_y_end": 614
+  },
+  "sea_snake_f1": {
+    "filename": "sea_snake_f1.png",
+    "width": 30,
+    "height": 31,
+    "frame": 1,
+    "source_y_start": 584,
+    "source_y_end": 614
+  },
+  "clownfish_f0": {
+    "filename": "clownfish_f0.png",
+    "width": 32,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 631,
+    "source_y_end": 662
+  },
+  "clownfish_f1": {
+    "filename": "clownfish_f1.png",
+    "width": 31,
+    "height": 32,
+    "frame": 1,
+    "source_y_start": 631,
+    "source_y_end": 662
+  },
+  "whale_f0": {
+    "filename": "whale_f0.png",
+    "width": 31,
+    "height": 30,
+    "frame": 0,
+    "source_y_start": 682,
+    "source_y_end": 711
+  },
+  "whale_f1": {
+    "filename": "whale_f1.png",
+    "width": 34,
+    "height": 28,
+    "frame": 1,
+    "source_y_start": 682,
+    "source_y_end": 711
+  },
+  "dolphin_f0": {
+    "filename": "dolphin_f0.png",
+    "width": 31,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 728,
+    "source_y_end": 759
+  },
+  "dolphin_f1": {
+    "filename": "dolphin_f1.png",
+    "width": 29,
+    "height": 31,
+    "frame": 1,
+    "source_y_start": 728,
+    "source_y_end": 759
+  },
+  "shark_f0": {
+    "filename": "shark_f0.png",
+    "width": 33,
+    "height": 28,
+    "frame": 0,
+    "source_y_start": 779,
+    "source_y_end": 806
+  },
+  "shark_f1": {
+    "filename": "shark_f1.png",
+    "width": 33,
+    "height": 27,
+    "frame": 1,
+    "source_y_start": 779,
+    "source_y_end": 806
+  },
+  "eal_f0": {
+    "filename": "eal_f0.png",
+    "width": 29,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 823,
+    "source_y_end": 854
+  },
+  "eal_f1": {
+    "filename": "eal_f1.png",
+    "width": 30,
+    "height": 32,
+    "frame": 1,
+    "source_y_start": 823,
+    "source_y_end": 854
+  },
+  "swordfish_f0": {
+    "filename": "swordfish_f0.png",
+    "width": 43,
+    "height": 36,
+    "frame": 0,
+    "source_y_start": 870,
+    "source_y_end": 905
+  },
+  "swordfish_f1": {
+    "filename": "swordfish_f1.png",
+    "width": 45,
+    "height": 36,
+    "frame": 1,
+    "source_y_start": 870,
+    "source_y_end": 905
+  },
+  "nautilus_f0": {
+    "filename": "nautilus_f0.png",
+    "width": 32,
+    "height": 27,
+    "frame": 0,
+    "source_y_start": 924,
+    "source_y_end": 950
+  },
+  "nautilus_f1": {
+    "filename": "nautilus_f1.png",
+    "width": 31,
+    "height": 27,
+    "frame": 1,
+    "source_y_start": 924,
+    "source_y_end": 950
+  },
+  "stingray_f0": {
+    "filename": "stingray_f0.png",
+    "width": 30,
+    "height": 31,
+    "frame": 0,
+    "source_y_start": 967,
+    "source_y_end": 997
+  },
+  "stingray_f1": {
+    "filename": "stingray_f1.png",
+    "width": 31,
+    "height": 31,
+    "frame": 1,
+    "source_y_start": 967,
+    "source_y_end": 997
+  },
+  "pufferfish_2_f0": {
+    "filename": "pufferfish_2_f0.png",
+    "width": 29,
+    "height": 31,
+    "frame": 0,
+    "source_y_start": 1015,
+    "source_y_end": 1045
+  },
+  "pufferfish_2_f1": {
+    "filename": "pufferfish_2_f1.png",
+    "width": 31,
+    "height": 29,
+    "frame": 1,
+    "source_y_start": 1015,
+    "source_y_end": 1045
+  },
+  "sea_urchin_f0": {
+    "filename": "sea_urchin_f0.png",
+    "width": 29,
+    "height": 14,
+    "frame": 0,
+    "source_y_start": 1071,
+    "source_y_end": 1085
+  },
+  "sea_urchin_f1": {
+    "filename": "sea_urchin_f1.png",
+    "width": 28,
+    "height": 15,
+    "frame": 1,
+    "source_y_start": 1071,
+    "source_y_end": 1085
+  },
+  "jellyfish_3_f0": {
+    "filename": "jellyfish_3_f0.png",
+    "width": 25,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 1111,
+    "source_y_end": 1142
+  },
+  "jellyfish_3_f1": {
+    "filename": "jellyfish_3_f1.png",
+    "width": 24,
+    "height": 31,
+    "frame": 1,
+    "source_y_start": 1111,
+    "source_y_end": 1142
+  },
+  "coral_fish_f0": {
+    "filename": "coral_fish_f0.png",
+    "width": 32,
+    "height": 32,
+    "frame": 0,
+    "source_y_start": 1158,
+    "source_y_end": 1190
+  },
+  "coral_fish_f1": {
+    "filename": "coral_fish_f1.png",
+    "width": 33,
+    "height": 33,
+    "frame": 1,
+    "source_y_start": 1158,
+    "source_y_end": 1190
+  },
+  "lanternfish_f0": {
+    "filename": "lanternfish_f0.png",
+    "width": 32,
+    "height": 24,
+    "frame": 0,
+    "source_y_start": 1212,
+    "source_y_end": 1236
+  },
+  "lanternfish_f1": {
+    "filename": "lanternfish_f1.png",
+    "width": 35,
+    "height": 24,
+    "frame": 1,
+    "source_y_start": 1212,
+    "source_y_end": 1236
+  },
+  "blobfish_f0": {
+    "filename": "blobfish_f0.png",
+    "width": 31,
+    "height": 24,
+    "frame": 0,
+    "source_y_start": 1259,
+    "source_y_end": 1282
+  },
+  "blobfish_f1": {
+    "filename": "blobfish_f1.png",
+    "width": 30,
+    "height": 24,
+    "frame": 1,
+    "source_y_start": 1259,
+    "source_y_end": 1282
+  },
+  "gulper_eel_f0": {
+    "filename": "gulper_eel_f0.png",
+    "width": 25,
+    "height": 20,
+    "frame": 0,
+    "source_y_start": 1310,
+    "source_y_end": 1330
+  },
+  "gulper_eel_f1": {
+    "filename": "gulper_eel_f1.png",
+    "width": 29,
+    "height": 20,
+    "frame": 1,
+    "source_y_start": 1310,
+    "source_y_end": 1330
+  },
+  "vampire_squid_f0": {
+    "filename": "vampire_squid_f0.png",
+    "width": 28,
+    "height": 25,
+    "frame": 0,
+    "source_y_start": 1356,
+    "source_y_end": 1380
+  },
+  "vampire_squid_f1": {
+    "filename": "vampire_squid_f1.png",
+    "width": 28,
+    "height": 25,
+    "frame": 1,
+    "source_y_start": 1356,
+    "source_y_end": 1380
+  },
+  "dragonfish_f0": {
+    "filename": "dragonfish_f0.png",
+    "width": 26,
+    "height": 29,
+    "frame": 0,
+    "source_y_start": 1403,
+    "source_y_end": 1431
+  },
+  "dragonfish_f1": {
+    "filename": "dragonfish_f1.png",
+    "width": 26,
+    "height": 29,
+    "frame": 1,
+    "source_y_start": 1403,
+    "source_y_end": 1431
+  },
+  "giant_isopod_f0": {
+    "filename": "giant_isopod_f0.png",
+    "width": 37,
+    "height": 28,
+    "frame": 0,
+    "source_y_start": 1449,
+    "source_y_end": 1476
+  },
+  "giant_isopod_f1": {
+    "filename": "giant_isopod_f1.png",
+    "width": 36,
+    "height": 26,
+    "frame": 1,
+    "source_y_start": 1449,
+    "source_y_end": 1476
+  }
+}
