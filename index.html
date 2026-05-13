@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>远洋航行者 | Ocean Voyager</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+        body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     </style>
 </head>
 <body>
@@ -95,20 +95,113 @@
             watermark: 'rgba(140, 190, 220, 0.25)'
         };
 
+        // ====== BGM 引擎 (HTML5 Audio 播放 bgm.mp3) ======
+        const BGM = {
+            audio: null,
+            muted: false,
+            started: false,
+            _targetVolume: 0.35,
+            _fadeInterval: null,
+
+            init() {
+                if (this.audio) return;
+                this.audio = new Audio('bgm.mp3');
+                this.audio.loop = true;
+                this.audio.volume = this.muted ? 0 : this._targetVolume;
+                this.audio.preload = 'auto';
+                // 加载失败时静默处理
+                this.audio.onerror = () => console.warn('BGM: bgm.mp3 加载失败，请确保文件存在于同目录下');
+            },
+
+            start() {
+                if (this.started) return;
+                this.init();
+                this.started = true;
+                this.audio.play().catch(() => {
+                    // 浏览器阻止自动播放，等待用户交互后重试
+                    const retry = () => {
+                        if (this.started && this.audio) {
+                            this.audio.play().catch(() => {});
+                        }
+                        window.removeEventListener('click', retry);
+                        window.removeEventListener('keydown', retry);
+                        window.removeEventListener('touchstart', retry);
+                    };
+                    window.addEventListener('click', retry);
+                    window.addEventListener('keydown', retry);
+                    window.addEventListener('touchstart', retry);
+                });
+            },
+
+            toggleMute() {
+                this.muted = !this.muted;
+                if (this.audio) {
+                    this._smoothVolume(this.muted ? 0 : this._targetVolume);
+                }
+                return this.muted;
+            },
+
+            setVolume(v) {
+                this._targetVolume = v;
+                if (this.audio && !this.muted) {
+                    this._smoothVolume(v);
+                }
+            },
+
+            _smoothVolume(target) {
+                if (!this.audio) return;
+                if (this._fadeInterval) clearInterval(this._fadeInterval);
+                const step = 0.02;
+                const current = this.audio.volume;
+                if (Math.abs(current - target) < step) {
+                    this.audio.volume = target;
+                    return;
+                }
+                const direction = target > current ? 1 : -1;
+                this._fadeInterval = setInterval(() => {
+                    const next = this.audio.volume + direction * step;
+                    if ((direction > 0 && next >= target) || (direction < 0 && next <= target)) {
+                        this.audio.volume = target;
+                        clearInterval(this._fadeInterval);
+                        this._fadeInterval = null;
+                    } else {
+                        this.audio.volume = next;
+                    }
+                }, 30);
+            },
+
+            stop() {
+                if (this.audio) {
+                    this.audio.pause();
+                    this.audio.currentTime = 0;
+                }
+                if (this._fadeInterval) clearInterval(this._fadeInterval);
+                this._fadeInterval = null;
+                this.started = false;
+            }
+        };
+
         const CHANNEL_COUNT = 7;
+        const isMobile = () => window.innerWidth <= 768;
         const SUB_X = 80;
         const SUB_WIDTH = 80;
         const INVINCIBLE_DURATION = 5000; // 5秒无敌时间
 
         // 航船组件
-        const Ship = ({ y, isHit, isInvincible }) => (
+        const Ship = ({ y, isHit, isInvincible }) => {
+            const mobile = isMobile();
+            const shipScale = mobile ? 0.7 : 1;
+            const shipX = mobile ? 30 : SUB_X;
+            return (
             <div style={{
                 position: 'absolute',
-                left: SUB_X,
-                top: y - 30,
+                left: shipX,
+                top: y - 30 * shipScale,
                 transition: 'top 0.15s ease-out, filter 0.1s',
                 filter: isHit ? 'brightness(2) hue-rotate(300deg)' : 'none',
-                opacity: isInvincible ? (Math.sin(Date.now() / 100) * 0.3 + 0.7) : 1
+                opacity: isInvincible ? (Math.sin(Date.now() / 100) * 0.3 + 0.7) : 1,
+                transform: `scale(${shipScale})`,
+                transformOrigin: 'left center'
             }}>
                 <svg width="80" height="60" viewBox="0 0 80 60">
                     <defs>
@@ -177,7 +270,7 @@
                     }}/>
                 )}
             </div>
-        );
+        );}
 
         // 深海生物组件
         const SeaCreature = ({ type, x, channel, channelHeight }) => {
@@ -369,18 +462,20 @@
         };
 
         // 得分显示
-        const ScoreDisplay = ({ score, distance, lives, isInvincible }) => (
+        const ScoreDisplay = ({ score, distance, lives, isInvincible }) => {
+            const mobile = isMobile();
+            return (
             <div style={{
-                position: 'fixed', top: 20, left: 20,
+                position: 'fixed', top: mobile ? 10 : 20, left: mobile ? 10 : 20,
                 color: COLORS.glow, fontFamily: "'Courier New', monospace",
                 textShadow: `0 0 8px rgba(77, 232, 255, 0.6)`, zIndex: 100
             }}>
-                <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 5 }}>航程 DISTANCE</div>
-                <div style={{ fontSize: 32, fontWeight: 'bold' }}>{Math.floor(distance)}m</div>
-                <div style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>得分 SCORE</div>
-                <div style={{ fontSize: 24 }}>{score}</div>
-                <div style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>生命 LIVES</div>
-                <div style={{ fontSize: 20 }}>
+                <div style={{ fontSize: mobile ? 10 : 14, opacity: 0.7, marginBottom: mobile ? 2 : 5 }}>航程 DISTANCE</div>
+                <div style={{ fontSize: mobile ? 22 : 32, fontWeight: 'bold' }}>{Math.floor(distance)}m</div>
+                <div style={{ marginTop: mobile ? 6 : 15, fontSize: mobile ? 10 : 14, opacity: 0.7 }}>得分 SCORE</div>
+                <div style={{ fontSize: mobile ? 16 : 24 }}>{score}</div>
+                <div style={{ marginTop: mobile ? 6 : 15, fontSize: mobile ? 10 : 14, opacity: 0.7 }}>生命 LIVES</div>
+                <div style={{ fontSize: mobile ? 16 : 20 }}>
                     {[0,1,2].map(i => <span key={i} style={{ opacity: i < lives ? 1 : 0.2 }}>♥ </span>)}
                 </div>
                 {isInvincible && (
@@ -389,7 +484,7 @@
                     </div>
                 )}
             </div>
-        );
+        );}
 
         // 读取最高纪录
         const getHighScore = () => {
@@ -409,14 +504,16 @@
         };
 
         // 排行榜组件
-        const Leaderboard = ({ entries, highlight }) => (
+        const Leaderboard = ({ entries, highlight }) => {
+            const mobile = isMobile();
+            return (
             <div style={{
-                width: 320, maxHeight: 260, overflowY: 'auto',
+                width: mobile ? 280 : 320, maxHeight: mobile ? 200 : 260, overflowY: 'auto',
                 background: 'rgba(0,0,0,0.4)', borderRadius: 10,
-                border: '1px solid rgba(77,232,255,0.15)', padding: '12px 16px',
+                border: '1px solid rgba(77,232,255,0.15)', padding: mobile ? '8px 12px' : '12px 16px',
                 marginTop: 10
             }}>
-                <div style={{ color: COLORS.glow, fontSize: 13, marginBottom: 8, textAlign: 'center', letterSpacing: 2, opacity: 0.8 }}>
+                <div style={{ color: COLORS.glow, fontSize: mobile ? 11 : 13, marginBottom: 8, textAlign: 'center', letterSpacing: 2, opacity: 0.8 }}>
                     全球排行榜 LEADERBOARD
                 </div>
                 {entries.length === 0 && (
@@ -427,7 +524,7 @@
                 {entries.map((e, i) => (
                     <div key={e.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '4px 0', fontSize: 13,
+                        padding: '4px 0', fontSize: mobile ? 11 : 13,
                         color: i === 0 ? COLORS.fishGlow : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.6)',
                         borderBottom: '1px solid rgba(255,255,255,0.05)',
                         background: highlight && e.name === highlight ? 'rgba(77,232,255,0.08)' : 'transparent',
@@ -438,7 +535,7 @@
                     </div>
                 ))}
             </div>
-        );
+        );}
 
         // 开始界面
         const StartScreen = ({ onStart }) => {
@@ -446,6 +543,7 @@
                 try { return localStorage.getItem('oceanVoyagerName') || ''; } catch { return ''; }
             });
             const [leaderboard, setLeaderboard] = useState([]);
+            const mobile = isMobile();
 
             useEffect(() => { fetchLeaderboard(10).then(setLeaderboard); }, []);
 
@@ -460,18 +558,20 @@
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
                     background: `radial-gradient(ellipse at center, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 50%, #050a15 100%)`,
-                    overflowY: 'auto', padding: '30px 20px'
+                    overflowY: 'auto', padding: mobile ? '20px 15px' : '30px 20px'
                 }}>
-                    <div style={{ color: COLORS.glow, fontSize: 48, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 20, letterSpacing: 8 }}>
+                    <div style={{ color: COLORS.glow, fontSize: mobile ? 28 : 48, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: mobile ? 12 : 20, letterSpacing: mobile ? 4 : 8 }}>
                         远 洋 航 行 者
                     </div>
-                    <div style={{ color: COLORS.bioluminescence, fontSize: 18, opacity: 0.8, marginBottom: 30, letterSpacing: 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
+                    <div style={{ color: COLORS.bioluminescence, fontSize: mobile ? 13 : 18, opacity: 0.8, marginBottom: mobile ? 20 : 30, letterSpacing: mobile ? 2 : 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
                         OCEAN VOYAGER
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 25, textAlign: 'center', lineHeight: 1.8 }}>
-                        使用 ↑ ↓ 方向键控制航船<br/>
-                        躲避暗流、礁石和海洋生物<br/>
-                        航行更远的距离
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: mobile ? 12 : 14, marginBottom: 25, textAlign: 'center', lineHeight: 1.8 }}>
+                        {mobile ? (
+                            <>点击上半屏 ↑ / 下半屏 ↓ 控制航船<br/>躲避暗流、礁石和海洋生物</>
+                        ) : (
+                            <>使用 ↑ ↓ 方向键控制航船<br/>躲避暗流、礁石和海洋生物<br/>航行更远的距离</>
+                        )}
                     </div>
                     {/* 用户名输入 */}
                     <div style={{ marginBottom: 20, textAlign: 'center' }}>
@@ -486,36 +586,39 @@
                                 background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(77,232,255,0.3)`,
                                 borderRadius: 6, padding: '8px 16px', color: COLORS.glow,
                                 fontSize: 16, fontFamily: "'Courier New', monospace",
-                                textAlign: 'center', outline: 'none', width: 220,
+                                textAlign: 'center', outline: 'none', width: mobile ? 200 : 220,
                                 boxShadow: `0 0 10px rgba(77,232,255,0.1)`
                             }}
                         />
                     </div>
                     <button onClick={handleStart} style={{
                         background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
-                        padding: '15px 50px', fontSize: 18, cursor: 'pointer',
+                        padding: mobile ? '12px 40px' : '15px 50px', fontSize: mobile ? 16 : 18, cursor: 'pointer',
                         fontFamily: "'Courier New', monospace", letterSpacing: 4,
                         transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
                     }}
                     onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
-                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}
+                    onTouchStart={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                    onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
                         起航
                     </button>
                     {/* 排行榜 */}
                     <Leaderboard entries={leaderboard} />
                     <div style={{ position: 'absolute', bottom: 50, color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
-                        ↑ ↓ 方向键移动 | 触碰障碍物会失去生命
+                        {mobile ? '点击上半屏↑ / 下半屏↓ 移动' : '↑ ↓ 方向键移动'} | 触碰障碍物会失去生命
                     </div>
                 </div>
             );
         };
 
         // 游戏结束界面
-        const GameOverScreen = ({ score, distance, playerName, onRestart }) => {
+        const GameOverScreen = ({ score, distance, playerName, onRestart, onHome }) => {
             const highScore = getHighScore();
             const isNewRecord = score > highScore;
             const [leaderboard, setLeaderboard] = useState([]);
             const [submitted, setSubmitted] = useState(false);
+            const mobile = isMobile();
 
             // 保存分数到本地 + Firestore
             useEffect(() => {
@@ -537,16 +640,16 @@
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
                     background: 'rgba(4, 8, 16, 0.95)',
-                    overflowY: 'auto', padding: '30px 20px'
+                    overflowY: 'auto', padding: mobile ? '20px 15px' : '30px 20px'
                 }}>
-                    <div style={{ color: COLORS.warning, fontSize: 42, fontWeight: 'bold', textShadow: `0 0 20px rgba(255, 107, 107, 0.5)`, marginBottom: 30 }}>
+                    <div style={{ color: COLORS.warning, fontSize: mobile ? 28 : 42, fontWeight: 'bold', textShadow: `0 0 20px rgba(255, 107, 107, 0.5)`, marginBottom: mobile ? 20 : 30 }}>
                         航行终止
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 10 }}>最终得分</div>
-                    <div style={{ color: COLORS.glow, fontSize: 56, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 10 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: mobile ? 14 : 16, marginBottom: 10 }}>最终得分</div>
+                    <div style={{ color: COLORS.glow, fontSize: mobile ? 36 : 56, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 10 }}>
                         {score}
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 15 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: mobile ? 12 : 14, marginBottom: 15 }}>
                         航行距离: {Math.floor(distance)}m
                     </div>
                     {isNewRecord && (
@@ -558,21 +661,35 @@
                             新纪录!
                         </div>
                     )}
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 20 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: mobile ? 12 : 14, marginBottom: 20 }}>
                         最高纪录: {finalHighScore} 分
                     </div>
                     {/* 排行榜 */}
                     <Leaderboard entries={leaderboard} highlight={playerName} />
-                    <div style={{ marginTop: 20 }}>
+                    <div style={{ marginTop: 20, display: 'flex', gap: 15, flexWrap: 'wrap', justifyContent: 'center' }}>
                         <button onClick={onRestart} style={{
                             background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
-                            padding: '15px 50px', fontSize: 18, cursor: 'pointer',
+                            padding: mobile ? '12px 40px' : '15px 50px', fontSize: mobile ? 16 : 18, cursor: 'pointer',
                             fontFamily: "'Courier New', monospace", letterSpacing: 4,
                             transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
                         }}
                         onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
-                        onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                        onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}
+                        onTouchStart={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                        onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
                             再次起航
+                        </button>
+                        <button onClick={onHome} style={{
+                            background: 'transparent', border: `2px solid rgba(255,255,255,0.3)`, color: 'rgba(255,255,255,0.6)',
+                            padding: mobile ? '12px 40px' : '15px 50px', fontSize: mobile ? 16 : 18, cursor: 'pointer',
+                            fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                            transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
+                        onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.6)'; }}
+                        onTouchStart={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
+                        onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.6)'; }}>
+                            返回主页
                         </button>
                     </div>
                 </div>
@@ -584,8 +701,11 @@
             const chHeight = () => window.innerHeight / CHANNEL_COUNT;
             const chCenter = (ch) => (ch + 0.5) * chHeight();
 
-            const [gameState, setGameState] = useState('start');
+            const [gameState, setGameState] = useState('start'); // start | playing | paused | gameover
             const [playerName, setPlayerName] = useState('');
+            const [isMuted, setIsMuted] = useState(() => {
+                try { return localStorage.getItem('oceanVoyagerMuted') === 'true'; } catch { return false; }
+            });
             const [subChannel, setSubChannel] = useState(Math.floor(CHANNEL_COUNT / 2));
             const [subY, setSubY] = useState(chCenter(Math.floor(CHANNEL_COUNT / 2)));
             const [score, setScore] = useState(0);
@@ -638,8 +758,15 @@
 
             // 键盘控制
             useEffect(() => {
-                if (gameState !== 'playing') return;
+                if (gameState !== 'playing' && gameState !== 'paused') return;
                 const onKey = (e) => {
+                    // Escape 暂停/恢复
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setGameState(prev => prev === 'playing' ? 'paused' : prev === 'paused' ? 'playing' : prev);
+                        return;
+                    }
+                    if (gameState !== 'playing') return;
                     if (!canMoveRef.current) return;
                     if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && subChRef.current > 0) {
                         e.preventDefault();
@@ -658,6 +785,33 @@
                 };
                 window.addEventListener('keydown', onKey);
                 return () => window.removeEventListener('keydown', onKey);
+            }, [gameState]);
+
+            // 手机触摸控制：点击上半屏向上移动，点击下半屏向下移动
+            useEffect(() => {
+                if (gameState !== 'playing') return;
+                const onTouch = (e) => {
+                    // 不拦截输入框等可交互元素的触摸
+                    const tag = e.target.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'button' || tag === 'textarea' || tag === 'select') return;
+                    e.preventDefault();
+                    if (!canMoveRef.current) return;
+                    const touchY = e.touches[0].clientY;
+                    const halfH = window.innerHeight / 2;
+                    if (touchY < halfH && subChRef.current > 0) {
+                        subChRef.current -= 1;
+                        setSubChannel(subChRef.current);
+                        canMoveRef.current = false;
+                        setTimeout(() => canMoveRef.current = true, 120);
+                    } else if (touchY >= halfH && subChRef.current < CHANNEL_COUNT - 1) {
+                        subChRef.current += 1;
+                        setSubChannel(subChRef.current);
+                        canMoveRef.current = false;
+                        setTimeout(() => canMoveRef.current = true, 120);
+                    }
+                };
+                window.addEventListener('touchstart', onTouch, { passive: false });
+                return () => window.removeEventListener('touchstart', onTouch);
             }, [gameState]);
 
             // 游戏循环
@@ -691,8 +845,9 @@
                         .filter(o => o.x > -300);
 
                     // 碰撞检测：X轴重叠 + 通道重叠
-                    const subLeft = SUB_X;
-                    const subRight = SUB_X + SUB_WIDTH;
+                    const mob = isMobile();
+                    const subLeft = mob ? 30 : SUB_X;
+                    const subRight = subLeft + SUB_WIDTH * (mob ? 0.7 : 1);
                     const hitObs = obsRef.current.find(o => {
                         const obsLeft = o.x;
                         const obsRight = o.x + (o.hitWidth || 100);
@@ -763,6 +918,62 @@
                 setObstacles([]);
             }, []);
 
+            // BGM 控制
+            const toggleBGM = useCallback(() => {
+                const muted = BGM.toggleMute();
+                setIsMuted(muted);
+                try { localStorage.setItem('oceanVoyagerMuted', String(muted)); } catch {}
+            }, []);
+
+            // 首次交互时启动 BGM
+            useEffect(() => {
+                if (BGM.muted !== isMuted) BGM.muted = isMuted;
+                const startBGM = () => {
+                    BGM.start();
+                    if (isMuted) BGM.setVolume(0);
+                };
+                // 任意用户交互启动
+                const onInteract = () => {
+                    startBGM();
+                    window.removeEventListener('click', onInteract);
+                    window.removeEventListener('keydown', onInteract);
+                    window.removeEventListener('touchstart', onInteract);
+                };
+                if (!BGM.started) {
+                    window.addEventListener('click', onInteract);
+                    window.addEventListener('keydown', onInteract);
+                    window.addEventListener('touchstart', onInteract);
+                } else if (isMuted) {
+                    BGM.setVolume(0);
+                }
+                return () => {
+                    window.removeEventListener('click', onInteract);
+                    window.removeEventListener('keydown', onInteract);
+                    window.removeEventListener('touchstart', onInteract);
+                };
+            }, []);
+
+            // 根据游戏状态调整 BGM 音量
+            useEffect(() => {
+                if (!BGM.started) return;
+                if (isMuted) { BGM.setVolume(0); return; }
+                if (gameState === 'playing') BGM.setVolume(0.35);
+                else if (gameState === 'paused') BGM.setVolume(0.15);
+                else if (gameState === 'gameover') BGM.setVolume(0.1);
+                else BGM.setVolume(0.25); // start screen
+            }, [gameState, isMuted]);
+
+            // 返回主页
+            const goHome = useCallback(() => {
+                cancelAnimationFrame(frameRef.current);
+                if (invincibleTimerRef.current) clearTimeout(invincibleTimerRef.current);
+                invincibleTimerRef.current = null;
+                hitCooldownRef.current = false;
+                setIsHit(false);
+                setIsInvincible(false);
+                setGameState('start');
+            }, []);
+
             const channelHeight = typeof window !== 'undefined' ? window.innerHeight / CHANNEL_COUNT : 100;
 
             return (
@@ -776,19 +987,104 @@
                         @keyframes invinciblePulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
                     `}</style>
 
-                    {gameState === 'start' && <StartScreen onStart={startGame} />}
-                    {gameState === 'gameover' && <GameOverScreen score={score} distance={distanceRef.current} playerName={playerName} onRestart={() => startGame(playerName)} />}
+                    {/* BGM 静音按钮 - 全局显示 */}
+                    <div
+                        onClick={toggleBGM}
+                        style={{
+                            position: 'fixed', bottom: isMobile() ? 12 : 20, right: isMobile() ? 12 : 24,
+                            width: isMobile() ? 32 : 38, height: isMobile() ? 32 : 38,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', zIndex: 300,
+                            background: 'rgba(0,0,0,0.3)', borderRadius: 8,
+                            border: '1px solid rgba(77,232,255,0.2)'
+                        }}
+                    >
+                        {isMuted ? (
+                            <svg width={isMobile() ? 16 : 20} height={isMobile() ? 16 : 20} viewBox="0 0 24 24" fill="none" stroke={COLORS.glow} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <line x1="23" y1="9" x2="17" y2="15"/>
+                                <line x1="17" y1="9" x2="23" y2="15"/>
+                            </svg>
+                        ) : (
+                            <svg width={isMobile() ? 16 : 20} height={isMobile() ? 16 : 20} viewBox="0 0 24 24" fill="none" stroke={COLORS.glow} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        )}
+                    </div>
 
-                    {gameState === 'playing' && (
+                    {gameState === 'start' && <StartScreen onStart={startGame} />}
+                    {gameState === 'gameover' && <GameOverScreen score={score} distance={distanceRef.current} playerName={playerName} onRestart={() => startGame(playerName)} onHome={goHome} />}
+
+                    {(gameState === 'playing' || gameState === 'paused') && (
                         <>
                             <OceanBackground distance={distance} />
-                            <Particles count={60} />
+                            <Particles count={isMobile() ? 30 : 60} />
                             <ScoreDisplay score={score} distance={distance} lives={lives} isInvincible={isInvincible} />
+                            {/* 暂停/恢复按钮 */}
+                            <div
+                                onClick={() => setGameState(prev => prev === 'playing' ? 'paused' : prev === 'paused' ? 'playing' : prev)}
+                                style={{
+                                    position: 'fixed', top: isMobile() ? 42 : 48, right: isMobile() ? 12 : 24,
+                                    width: isMobile() ? 36 : 44, height: isMobile() ? 36 : 44,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', zIndex: 110,
+                                    background: 'rgba(0,0,0,0.3)', borderRadius: 8,
+                                    border: '1px solid rgba(77,232,255,0.2)'
+                                }}
+                            >
+                                {gameState === 'paused' ? (
+                                    <svg width={isMobile() ? 18 : 22} height={isMobile() ? 18 : 22} viewBox="0 0 24 24" fill={COLORS.glow}>
+                                        <polygon points="6,3 20,12 6,21"/>
+                                    </svg>
+                                ) : (
+                                    <svg width={isMobile() ? 18 : 22} height={isMobile() ? 18 : 22} viewBox="0 0 24 24" fill={COLORS.glow}>
+                                        <rect x="5" y="3" width="4" height="18" rx="1"/>
+                                        <rect x="15" y="3" width="4" height="18" rx="1"/>
+                                    </svg>
+                                )}
+                            </div>
+                            {gameState === 'paused' && (
+                                <div style={{
+                                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                                    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                                    background: 'rgba(4, 8, 16, 0.7)', zIndex: 200
+                                }}>
+                                    <div style={{ color: COLORS.glow, fontSize: isMobile() ? 28 : 42, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 20, letterSpacing: 8 }}>
+                                        暂 停
+                                    </div>
+                                    <button onClick={() => setGameState('playing')} style={{
+                                        background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
+                                        padding: isMobile() ? '12px 40px' : '15px 50px', fontSize: isMobile() ? 16 : 18, cursor: 'pointer',
+                                        fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                                        transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`, marginBottom: 15
+                                    }}
+                                    onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}
+                                    onTouchStart={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                                    onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                                        继续航行
+                                    </button>
+                                    <button onClick={goHome} style={{
+                                        background: 'transparent', border: `2px solid rgba(255,255,255,0.3)`, color: 'rgba(255,255,255,0.6)',
+                                        padding: isMobile() ? '12px 40px' : '15px 50px', fontSize: isMobile() ? 16 : 18, cursor: 'pointer',
+                                        fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                                        transition: 'all 0.3s'
+                                    }}
+                                    onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
+                                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.6)'; }}
+                                    onTouchStart={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; e.target.style.color = '#fff'; }}
+                                    onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = 'rgba(255,255,255,0.6)'; }}>
+                                        结束航行
+                                    </button>
+                                </div>
+                            )}
                             <Ship y={subY} isHit={isHit} isInvincible={isInvincible} />
                             {/* 署名水印 */}
                             <div style={{
-                                position: 'fixed', top: 20, right: 24,
-                                color: COLORS.watermark, fontSize: 12,
+                                position: 'fixed', top: isMobile() ? 10 : 20, right: isMobile() ? 12 : 24,
+                                color: COLORS.watermark, fontSize: isMobile() ? 9 : 12,
                                 fontFamily: "'Courier New', monospace", letterSpacing: 1,
                                 zIndex: 100, pointerEvents: 'none', userSelect: 'none'
                             }}>
@@ -803,8 +1099,8 @@
 
                             {distance > 500 && (
                                 <div style={{
-                                    position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
-                                    color: COLORS.bioluminescence, fontSize: 14, opacity: 0.6,
+                                    position: 'fixed', bottom: isMobile() ? 15 : 30, left: '50%', transform: 'translateX(-50%)',
+                                    color: COLORS.bioluminescence, fontSize: isMobile() ? 11 : 14, opacity: 0.6,
                                     textShadow: `0 0 10px ${COLORS.bioluminescence}`
                                 }}>
                                     ⚠ 检测到远洋生物活动区域
@@ -812,8 +1108,8 @@
                             )}
                             {distance > 1000 && (
                                 <div style={{
-                                    position: 'fixed', bottom: 60, left: '50%', transform: 'translateX(-50%)',
-                                    color: COLORS.warning, fontSize: 12, opacity: 0.5,
+                                    position: 'fixed', bottom: isMobile() ? 35 : 60, left: '50%', transform: 'translateX(-50%)',
+                                    color: COLORS.warning, fontSize: isMobile() ? 10 : 12, opacity: 0.5,
                                     animation: 'pulse 2s ease-in-out infinite'
                                 }}>
                                     ▓▓▓ 未知海域 ▓▓▓
