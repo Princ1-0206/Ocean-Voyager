@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>远洋航行者 | Ocean Voyager</title>
+    <title>深海航行者 | Deep Sea Voyager</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -205,7 +205,7 @@
             anglerfish:  { img: 'anglerfish.png',   fw: 33, fh: 29, glow: '#40ffa0', scale: 2.5, speed: 2.5 },
             lanternfish: { img: 'lanternfish.png',  fw: 35, fh: 24, glow: '#40ffa0', scale: 2.5, speed: 3 },
             dragonfish:  { img: 'dragonfish.png',   fw: 26, fh: 29, glow: '#ff4060', scale: 2.5, speed: 2.8 },
-            // 大型生物 - 占多通道
+            // 大型生物 
             shark:       { img: 'shark.png',        fw: 33, fh: 28, glow: '#8090a0', scale: 3, speed: 5 },
             swordfish:   { img: 'swordfish.png',    fw: 45, fh: 36, glow: '#7080b0', scale: 2.5, speed: 6 },
             whale:       { img: 'whale.png',        fw: 34, fh: 30, glow: '#6070a0', scale: 3.5, speed: 2 },
@@ -242,7 +242,7 @@
             cephalopod:{ creatures: ['octopus','squid','vampire_squid'], weight: 0.1, chSize: 1 },
             other:     { creatures: ['eal','sea_snake','crab','sea_turtle','stingray','nautilus'], weight: 0.1, chSize: 1 },
             reef:      { creatures: [], weight: 0.1, chSize: 2 },
-            current:   { creatures: [], weight: 0.1, chSize: 2 },
+            current:   { creatures: [], weight: 0.1, chSize: 1 },
         };
 
         // 航船组件
@@ -594,10 +594,10 @@
                     overflowY: 'auto', padding: mobile ? '20px 15px' : '30px 20px'
                 }}>
                     <div style={{ color: COLORS.glow, fontSize: mobile ? 28 : 48, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: mobile ? 12 : 20, letterSpacing: mobile ? 4 : 8 }}>
-                        远 洋 航 行 者
+                        深 海 航 行 者
                     </div>
                     <div style={{ color: COLORS.bioluminescence, fontSize: mobile ? 13 : 18, opacity: 0.8, marginBottom: mobile ? 20 : 30, letterSpacing: mobile ? 2 : 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
-                        OCEAN VOYAGER
+                        DEEP SEA VOYAGER
                     </div>
                     <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: mobile ? 12 : 14, marginBottom: 25, textAlign: 'center', lineHeight: 1.8 }}>
                         {mobile ? (
@@ -785,7 +785,7 @@
                     const hitW = size * chH * 0.25;
                     return { ...base, type: 'reef', channels, hitWidth: hitW, floraType };
                 } else if (groupName === 'current') {
-                    const chSize = 2 + Math.floor(Math.random() * 2);
+                    const chSize = 1 + Math.floor(Math.random() * 2);
                     const chH = window.innerHeight / CHANNEL_COUNT;
                     const vortexSize = chSize * chH; // 正方形边长 = 通道高度 × 通道数
                     return { ...base, type: 'current', channels: randChs(chSize), hitWidth: vortexSize,
@@ -1152,7 +1152,7 @@
                                     color: COLORS.bioluminescence, fontSize: isMobile() ? 11 : 14, opacity: 0.6,
                                     textShadow: `0 0 10px ${COLORS.bioluminescence}`
                                 }}>
-                                    ⚠ 检测到远洋生物活动区域
+                                    ⚠ 检测到深海生物活动区域
                                 </div>
                             )}
                             {distance > 1000 && (
