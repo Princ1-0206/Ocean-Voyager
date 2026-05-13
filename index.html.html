@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>远洋航行者 | Ocean Voyager</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        const COLORS = {
+            // 海洋背景 - 更深邃的靛蓝层次
+            deepBlue: '#040b14',
+            midBlue: '#091a30',
+            lightBlue: '#153d6a',
+            // UI 主色 - 柔和的青蓝
+            glow: '#4de8ff',
+            warning: '#ff6b6b',
+            bioluminescence: '#80ffd4',
+            // 障碍物配色 - 更和谐的海洋色调
+            jellyBody: '#e866a8',      // 水母 - 柔粉
+            jellyGlow: '#d44a90',      // 水母发光 - 玫红
+            fishBody: '#e8943a',       // 鱼 - 琥珀
+            fishGlow: '#f0b840',       // 鱼发光 - 暖金
+            anglerBody: '#6a1020',     // 灯笼鱼 - 酒红
+            anglerGlow: '#40ffa0',     // 灯笼鱼诱饵 - 翠绿
+            reefLight: '#7a6a50',      // 礁石亮部 - 暖棕
+            reefDark: '#3a2a1a',       // 礁石暗部 - 深褐
+            reefEdge: '#b89848',       // 礁石边缘 - 暗金
+            currentColor: '#40a8d8',   // 暗流 - 海蓝
+            currentGlow: 'rgba(64, 168, 216, 0.5)',
+            particle: 'rgba(100, 180, 220, 0.35)',
+            invincible: 'rgba(255, 220, 80, 0.5)', // 无敌闪烁 - 暖金
+            // 署名水印色
+            watermark: 'rgba(140, 190, 220, 0.25)'
+        };
+
+        const CHANNEL_COUNT = 7;
+        const SUB_X = 80;
+        const SUB_WIDTH = 80;
+        const INVINCIBLE_DURATION = 5000; // 5秒无敌时间
+
+        // 航船组件
+        const Ship = ({ y, isHit, isInvincible }) => (
+            <div style={{
+                position: 'absolute',
+                left: SUB_X,
+                top: y - 30,
+                transition: 'top 0.15s ease-out, filter 0.1s',
+                filter: isHit ? 'brightness(2) hue-rotate(300deg)' : 'none',
+                opacity: isInvincible ? (Math.sin(Date.now() / 100) * 0.3 + 0.7) : 1
+            }}>
+                <svg width="80" height="60" viewBox="0 0 80 60">
+                    <defs>
+                        <radialGradient id="bodyGradient" cx="30%" cy="30%">
+                            <stop offset="0%" stopColor="#6a8ea0"/>
+                            <stop offset="100%" stopColor="#2a4050"/>
+                        </radialGradient>
+                        <radialGradient id="windowGlow" cx="50%" cy="50%">
+                            <stop offset="0%" stopColor="#80eeff"/>
+                            <stop offset="70%" stopColor="#20aacc"/>
+                            <stop offset="100%" stopColor="#106080"/>
+                        </radialGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="subGlow">
+                            <feGaussianBlur stdDeviation="2" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                    {/* 船体 */}
+                    <path d="M5 35 Q10 50 40 52 Q70 50 78 35 L75 28 Q40 22 8 28 Z"
+                        fill="url(#bodyGradient)" stroke="#5a8898" strokeWidth="2.5" filter="url(#subGlow)"/>
+                    {/* 船舱 */}
+                    <rect x="25" y="18" width="30" height="16" rx="4" fill="#2a4858" stroke="#5a8898" strokeWidth="1.5"/>
+                    {/* 舷窗 */}
+                    <circle cx="35" cy="26" r="5" fill="url(#windowGlow)" filter="url(#glow)" opacity="0.95"/>
+                    <circle cx="48" cy="26" r="5" fill="url(#windowGlow)" filter="url(#glow)" opacity="0.95"/>
+                    <circle cx="37" cy="24" r="1.5" fill="rgba(255,255,255,0.5)"/>
+                    <circle cx="50" cy="24" r="1.5" fill="rgba(255,255,255,0.5)"/>
+                    {/* 桅杆和帆 */}
+                    <line x1="40" y1="18" x2="40" y2="2" stroke="#7a6a5a" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M42 4 Q55 10 42 18" fill="#b8cce0" stroke="#8a9aaa" strokeWidth="1" opacity="0.9"/>
+                    {/* 船首灯 */}
+                    <circle cx="75" cy="30" r="4" fill={isHit ? COLORS.warning : COLORS.bioluminescence} filter="url(#glow)"/>
+                    {/* 尾迹 */}
+                    <path d="M5 30 Q0 28 -5 32" stroke="rgba(100,180,210,0.35)" strokeWidth="2" fill="none"/>
+                    <path d="M5 35 Q-2 33 -8 37" stroke="rgba(100,180,210,0.25)" strokeWidth="2" fill="none"/>
+                </svg>
+                <div style={{ position: 'absolute', left: -10, top: 20 }}>
+                    {[0,1,2].map(i => (
+                        <div key={i} style={{
+                            position: 'absolute',
+                            width: 4 + i * 2, height: 4 + i * 2,
+                            borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.3)',
+                            left: i * 5,
+                            animation: `bubbleUp 1.5s ease-out infinite`,
+                            animationDelay: `${i * 0.3}s`
+                        }}/>
+                    ))}
+                </div>
+                {/* 无敌光环 */}
+                {isInvincible && (
+                    <div style={{
+                        position: 'absolute', left: -15, top: -10,
+                        width: 110, height: 80, borderRadius: '50%',
+                        border: `2px solid ${COLORS.invincible}`,
+                        boxShadow: `0 0 20px ${COLORS.invincible}, inset 0 0 15px rgba(255,255,100,0.15)`,
+                        animation: 'invinciblePulse 0.5s ease-in-out infinite',
+                        pointerEvents: 'none'
+                    }}/>
+                )}
+            </div>
+        );
+
+        // 深海生物组件
+        const SeaCreature = ({ type, x, channel, channelHeight }) => {
+            const y = (channel + 0.5) * channelHeight;
+            const creatures = {
+                jellyfish: (
+                    <svg width="72" height="96" viewBox="0 0 60 80">
+                        <defs>
+                            <radialGradient id="jellyGlow">
+                                <stop offset="0%" stopColor="#f0a0c8" stopOpacity="0.95"/>
+                                <stop offset="50%" stopColor={COLORS.jellyBody} stopOpacity="0.85"/>
+                                <stop offset="100%" stopColor={COLORS.jellyGlow} stopOpacity="0.6"/>
+                            </radialGradient>
+                            <filter id="jellyFilter">
+                                <feGaussianBlur stdDeviation="2" result="blur"/>
+                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                        </defs>
+                        <ellipse cx="30" cy="20" rx="25" ry="18" fill="url(#jellyGlow)" filter="url(#jellyFilter)"/>
+                        {[0,1,2,3,4].map(i => (
+                            <path key={i} d={`M${15+i*8} 35 Q${20+i*8} 60 ${15+i*8} 75`}
+                                stroke={COLORS.jellyGlow} strokeWidth="2.5" fill="none" opacity="0.8"
+                                style={{animation: `tentacle 2s ease-in-out infinite`, animationDelay: `${i*0.2}s`}}/>
+                        ))}
+                    </svg>
+                ),
+                fish: (
+                    <svg width="60" height="36" viewBox="0 0 50 30">
+                        <defs>
+                            <radialGradient id="fishGlow">
+                                <stop offset="0%" stopColor={COLORS.fishGlow}/>
+                                <stop offset="100%" stopColor={COLORS.fishBody}/>
+                            </radialGradient>
+                            <filter id="fishFilter">
+                                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                        </defs>
+                        <ellipse cx="25" cy="15" rx="20" ry="10" fill="url(#fishGlow)" filter="url(#fishFilter)"/>
+                        <polygon points="45,15 55,5 55,25" fill={COLORS.fishBody}/>
+                        <circle cx="12" cy="12" r="3" fill={COLORS.fishGlow} opacity="0.9"/>
+                    </svg>
+                ),
+                angler: (
+                    <svg width="96" height="72" viewBox="0 0 80 60">
+                        <defs>
+                            <radialGradient id="anglerBody">
+                                <stop offset="0%" stopColor="#501828"/>
+                                <stop offset="100%" stopColor={COLORS.anglerBody}/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="40" cy="35" rx="30" ry="18" fill="url(#anglerBody)" stroke="#882020" strokeWidth="1.5"/>
+                        <circle cx="22" cy="28" r="5" fill="#dd4040"/>
+                        <circle cx="22" cy="28" r="2" fill="#ee8080"/>
+                        <line x1="35" y1="12" x2="42" y2="0" stroke="#4a3a5a" strokeWidth="3"/>
+                        <circle cx="42" cy="0" r="8" fill={COLORS.anglerGlow} style={{animation: 'pulse 1s ease-in-out infinite'}}/>
+                        <circle cx="42" cy="0" r="4" fill="#ffffff" opacity="0.6" style={{animation: 'pulse 1s ease-in-out infinite'}}/>
+                    </svg>
+                )
+            };
+            const glowColor = type === 'jellyfish' ? COLORS.jellyGlow :
+                              type === 'fish' ? COLORS.fishGlow :
+                              COLORS.anglerGlow;
+            return (
+                <div style={{
+                    position: 'absolute',
+                    left: x,
+                    top: y - 48,
+                    transform: 'scaleX(-1)',
+                    filter: `drop-shadow(0 0 15px ${glowColor}) drop-shadow(0 0 5px ${glowColor})`
+                }}>
+                    {creatures[type]}
+                </div>
+            );
+        };
+
+        // 礁石组件
+        const Reef = ({ x, channels, channelHeight }) => {
+            const topCh = Math.min(...channels);
+            const botCh = Math.max(...channels);
+            const top = topCh * channelHeight;
+            const h = (botCh - topCh + 1) * channelHeight;
+            const w = 120;
+            return (
+                <div style={{ position: 'absolute', left: x, top, width: w, height: h }}>
+                    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+                        <defs>
+                            <linearGradient id="reefGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor={COLORS.reefLight}/>
+                                <stop offset="50%" stopColor={COLORS.reefDark}/>
+                                <stop offset="100%" stopColor="#1a1008"/>
+                            </linearGradient>
+                            <filter id="reefGlow">
+                                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                        </defs>
+                        <path d={`M0 ${h} L${w*0.2} ${h*0.3} L${w*0.4} ${h*0.5} L${w*0.6} ${h*0.2} L${w*0.8} ${h*0.4} L${w} ${h*0.1} L${w} ${h} Z`}
+                            fill="url(#reefGrad)" stroke={COLORS.reefEdge} strokeWidth="2.5" filter="url(#reefGlow)"/>
+                        <circle cx={w*0.3} cy={h*0.35} r="4" fill="#e07050" opacity="0.8"/>
+                        <circle cx={w*0.5} cy={h*0.25} r="3" fill="#ff9070" opacity="0.7"/>
+                        <circle cx={w*0.7} cy={h*0.38} r="5" fill="#d05535" opacity="0.8"/>
+                    </svg>
+                </div>
+            );
+        };
+
+        // 暗流组件
+        const Current = ({ x, channels, channelHeight, strength, direction, width }) => {
+            const topCh = Math.min(...channels);
+            const botCh = Math.max(...channels);
+            const top = topCh * channelHeight;
+            const h = (botCh - topCh + 1) * channelHeight;
+            return (
+                <div style={{
+                    position: 'absolute', left: x, top,
+                    width: width || 150, height: h,
+                    background: `linear-gradient(${direction==='left'?'90deg':'270deg'},
+                        transparent 5%,
+                        rgba(79,195,247,${strength*0.25}) 30%,
+                        rgba(79,195,247,${strength*0.45}) 50%,
+                        rgba(79,195,247,${strength*0.25}) 70%,
+                        transparent 95%)`,
+                    animation: 'currentFlow 2s linear infinite', borderRadius: 10,
+                    boxShadow: `0 0 20px rgba(79,195,247,${strength*0.3}), inset 0 0 15px rgba(79,195,247,${strength*0.2})`
+                }}>
+                    {[...Array(Math.ceil(h/40))].map((_,i) => (
+                        <div key={i} style={{
+                            position: 'absolute', width: 40, height: 3,
+                            background: `linear-gradient(${direction==='left'?'90deg':'270deg'}, transparent, ${COLORS.currentGlow}, transparent)`,
+                            top: 20 + i * 40,
+                            animation: 'currentLine 1.5s linear infinite',
+                            animationDelay: `${i*0.2}s`,
+                            borderRadius: 2
+                        }}/>
+                    ))}
+                </div>
+            );
+        };
+
+        // 粒子系统
+        const Particles = ({ count = 50 }) => {
+            const [positions, setPositions] = useState(() =>
+                [...Array(count)].map(() => ({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 3 + 1,
+                    speed: Math.random() * 0.5 + 0.2,
+                    opacity: Math.random() * 0.5 + 0.2
+                }))
+            );
+            useEffect(() => {
+                const iv = setInterval(() => {
+                    setPositions(prev => prev.map(p => ({
+                        ...p,
+                        x: p.x < -10 ? window.innerWidth + 10 : p.x - p.speed * 3,
+                        y: p.y + Math.sin(Date.now()/1000 + p.x) * 0.5
+                    })));
+                }, 50);
+                return () => clearInterval(iv);
+            }, []);
+            return (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                    {positions.map((p, i) => (
+                        <div key={i} style={{
+                            position: 'absolute', left: p.x, top: p.y,
+                            width: p.size, height: p.size,
+                            borderRadius: '50%', background: COLORS.particle, opacity: p.opacity
+                        }}/>
+                    ))}
+                </div>
+            );
+        };
+
+        // 海洋背景
+        const OceanBackground = ({ distance }) => {
+            const o = Math.min(distance / 2000, 1);
+            return (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    background: `
+                        radial-gradient(ellipse at 15% 25%, rgba(10,50,90,${0.10+o*0.06}) 0%, transparent 55%),
+                        radial-gradient(ellipse at 85% 75%, rgba(5,40,70,${0.08+o*0.05}) 0%, transparent 55%),
+                        radial-gradient(ellipse at 50% 50%, rgba(15,35,60,${0.04+o*0.03}) 0%, transparent 70%),
+                        linear-gradient(180deg, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 35%, #020610 100%)
+                    `
+                }}/>
+            );
+        };
+
+        // 得分显示
+        const ScoreDisplay = ({ score, distance, lives, isInvincible }) => (
+            <div style={{
+                position: 'fixed', top: 20, left: 20,
+                color: COLORS.glow, fontFamily: "'Courier New', monospace",
+                textShadow: `0 0 8px rgba(77, 232, 255, 0.6)`, zIndex: 100
+            }}>
+                <div style={{ fontSize: 14, opacity: 0.7, marginBottom: 5 }}>航程 DISTANCE</div>
+                <div style={{ fontSize: 32, fontWeight: 'bold' }}>{Math.floor(distance)}m</div>
+                <div style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>得分 SCORE</div>
+                <div style={{ fontSize: 24 }}>{score}</div>
+                <div style={{ marginTop: 15, fontSize: 14, opacity: 0.7 }}>生命 LIVES</div>
+                <div style={{ fontSize: 20 }}>
+                    {[0,1,2].map(i => <span key={i} style={{ opacity: i < lives ? 1 : 0.2 }}>♥ </span>)}
+                </div>
+                {isInvincible && (
+                    <div style={{ marginTop: 10, fontSize: 12, color: '#ffff66', opacity: 0.8, animation: 'pulse 0.5s ease-in-out infinite' }}>
+                        护盾激活中
+                    </div>
+                )}
+            </div>
+        );
+
+        // 读取最高纪录
+        const getHighScore = () => {
+            try {
+                return parseInt(localStorage.getItem('oceanVoyagerHighScore') || '0', 10);
+            } catch { return 0; }
+        };
+
+        // 保存最高纪录
+        const saveHighScore = (score) => {
+            try {
+                const current = getHighScore();
+                if (score > current) {
+                    localStorage.setItem('oceanVoyagerHighScore', String(score));
+                }
+            } catch {}
+        };
+
+        // 开始界面
+        const StartScreen = ({ onStart }) => {
+            const highScore = getHighScore();
+            return (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                    background: `radial-gradient(ellipse at center, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 50%, #050a15 100%)`
+                }}>
+                    <div style={{ color: COLORS.glow, fontSize: 48, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 20, letterSpacing: 8 }}>
+                        远 洋 航 行 者
+                    </div>
+                    <div style={{ color: COLORS.bioluminescence, fontSize: 18, opacity: 0.8, marginBottom: 50, letterSpacing: 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
+                        OCEAN VOYAGER
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 30, textAlign: 'center', lineHeight: 1.8 }}>
+                        使用 ↑ ↓ 方向键控制航船<br/>
+                        躲避暗流、礁石和海洋生物<br/>
+                        航行更远的距离
+                    </div>
+                    {highScore > 0 && (
+                        <div style={{ color: COLORS.fishGlow, fontSize: 16, marginBottom: 30, textShadow: `0 0 10px rgba(240, 184, 64, 0.5)` }}>
+                            最高纪录: {highScore} 分
+                        </div>
+                    )}
+                    <button onClick={onStart} style={{
+                        background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
+                        padding: '15px 50px', fontSize: 18, cursor: 'pointer',
+                        fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                        transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
+                    }}
+                    onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                        起航
+                    </button>
+                    <div style={{ position: 'absolute', bottom: 50, color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
+                        ↑ ↓ 方向键移动 | 触碰障碍物会失去生命
+                    </div>
+                </div>
+            );
+        };
+
+        // 游戏结束界面
+        const GameOverScreen = ({ score, distance, onRestart }) => {
+            const highScore = getHighScore();
+            const isNewRecord = score > highScore;
+            // 保存分数（在组件渲染时确保保存）
+            useEffect(() => { saveHighScore(score); }, [score]);
+            const finalHighScore = isNewRecord ? score : highScore;
+
+            return (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                    background: 'rgba(4, 8, 16, 0.95)'
+                }}>
+                    <div style={{ color: COLORS.warning, fontSize: 42, fontWeight: 'bold', textShadow: `0 0 20px rgba(255, 107, 107, 0.5)`, marginBottom: 30 }}>
+                        航行终止
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, marginBottom: 10 }}>最终得分</div>
+                    <div style={{ color: COLORS.glow, fontSize: 56, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 10 }}>
+                        {score}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 15 }}>
+                        航行距离: {Math.floor(distance)}m
+                    </div>
+                    {isNewRecord && (
+                        <div style={{
+                            color: COLORS.fishGlow, fontSize: 18, marginBottom: 15,
+                            textShadow: `0 0 15px rgba(240, 184, 64, 0.5)`,
+                            animation: 'pulse 1s ease-in-out infinite'
+                        }}>
+                            新纪录!
+                        </div>
+                    )}
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 50 }}>
+                        最高纪录: {finalHighScore} 分
+                    </div>
+                    <button onClick={onRestart} style={{
+                        background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
+                        padding: '15px 50px', fontSize: 18, cursor: 'pointer',
+                        fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                        transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
+                    }}
+                    onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                        再次起航
+                    </button>
+                </div>
+            );
+        };
+
+        // ====== 主游戏 ======
+        const Game = () => {
+            const chHeight = () => window.innerHeight / CHANNEL_COUNT;
+            const chCenter = (ch) => (ch + 0.5) * chHeight();
+
+            const [gameState, setGameState] = useState('start');
+            const [subChannel, setSubChannel] = useState(Math.floor(CHANNEL_COUNT / 2));
+            const [subY, setSubY] = useState(chCenter(Math.floor(CHANNEL_COUNT / 2)));
+            const [score, setScore] = useState(0);
+            const [lives, setLives] = useState(3);
+            const [distance, setDistance] = useState(0);
+            const [isHit, setIsHit] = useState(false);
+            const [isInvincible, setIsInvincible] = useState(false);
+            const [obstacles, setObstacles] = useState([]);
+
+            const subChRef = useRef(Math.floor(CHANNEL_COUNT / 2));
+            const obsRef = useRef([]);
+            const tickRef = useRef(0);
+            const frameRef = useRef();
+            const hitCooldownRef = useRef(false);
+            const livesRef = useRef(3);
+            const canMoveRef = useRef(true);
+            const invincibleTimerRef = useRef(null);
+            const distanceRef = useRef(0); // 保持distance的ref同步，结算时使用
+
+            // 生成障碍物
+            const genObs = useCallback(() => {
+                const types = ['jellyfish','fish','angler','reef','current'];
+                const weights = [0.25, 0.25, 0.1, 0.2, 0.2];
+                let r = Math.random(), type = types[0], cum = 0;
+                for (let i = 0; i < weights.length; i++) { cum += weights[i]; if (r < cum) { type = types[i]; break; } }
+
+                const randChs = (size) => {
+                    const start = Math.floor(Math.random() * (CHANNEL_COUNT - size + 1));
+                    return Array.from({ length: size }, (_, i) => start + i);
+                };
+
+                const base = { id: Date.now() + Math.random(), type, x: window.innerWidth + 50 };
+
+                if (type === 'reef') {
+                    const size = 2 + Math.floor(Math.random() * 2);
+                    const channels = [];
+                    for (let i = 0; i < size; i++) channels.push(CHANNEL_COUNT - 1 - i);
+                    return { ...base, channels, hitWidth: 120 };
+                } else if (type === 'current') {
+                    const size = 2 + Math.floor(Math.random() * 2);
+                    return { ...base, channels: randChs(size), hitWidth: 150 + Math.random() * 100,
+                        width: 150 + Math.random() * 100, strength: 0.3 + Math.random() * 0.4,
+                        direction: Math.random() > 0.5 ? 'left' : 'right' };
+                } else if (type === 'angler') {
+                    return { ...base, channels: randChs(2), hitWidth: 96, speedX: 2 + Math.random() * 2 };
+                } else {
+                    return { ...base, channels: randChs(1), hitWidth: 72, speedX: 3 + Math.random() * 3 };
+                }
+            }, []);
+
+            // 键盘控制
+            useEffect(() => {
+                if (gameState !== 'playing') return;
+                const onKey = (e) => {
+                    if (!canMoveRef.current) return;
+                    if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && subChRef.current > 0) {
+                        e.preventDefault();
+                        subChRef.current -= 1;
+                        setSubChannel(subChRef.current);
+                        canMoveRef.current = false;
+                        setTimeout(() => canMoveRef.current = true, 120);
+                    }
+                    if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && subChRef.current < CHANNEL_COUNT - 1) {
+                        e.preventDefault();
+                        subChRef.current += 1;
+                        setSubChannel(subChRef.current);
+                        canMoveRef.current = false;
+                        setTimeout(() => canMoveRef.current = true, 120);
+                    }
+                };
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            }, [gameState]);
+
+            // 游戏循环
+            useEffect(() => {
+                if (gameState !== 'playing') return;
+
+                const loop = () => {
+                    tickRef.current += 1;
+
+                    // 距离和得分：distance每帧+0.5, score每10帧+1（两者保持同步：score ≈ distance / 5）
+                    setDistance(d => {
+                        const newD = d + 0.5;
+                        distanceRef.current = newD;
+                        return newD;
+                    });
+                    if (tickRef.current % 10 === 0) setScore(s => s + 1);
+
+                    // 航船位置
+                    const targetY = chCenter(subChRef.current);
+                    setSubY(targetY);
+
+                    // 生成障碍物（约每1.3秒一个）
+                    if (tickRef.current % 80 === 0) {
+                        obsRef.current = [...obsRef.current, genObs()];
+                    }
+
+                    // 更新障碍物位置
+                    const speed = 4;
+                    obsRef.current = obsRef.current
+                        .map(o => ({ ...o, x: o.x - (o.speedX || speed) }))
+                        .filter(o => o.x > -300);
+
+                    // 碰撞检测：X轴重叠 + 通道重叠
+                    const subLeft = SUB_X;
+                    const subRight = SUB_X + SUB_WIDTH;
+                    const hitObs = obsRef.current.find(o => {
+                        const obsLeft = o.x;
+                        const obsRight = o.x + (o.hitWidth || 100);
+                        const xOverlap = obsRight > subLeft && obsLeft < subRight;
+                        const chOverlap = o.channels.includes(subChRef.current);
+                        return xOverlap && chOverlap;
+                    });
+
+                    if (hitObs && !hitCooldownRef.current) {
+                        hitCooldownRef.current = true;
+                        setIsHit(true);
+                        const newLives = livesRef.current - 1;
+                        livesRef.current = newLives;
+                        setLives(newLives);
+
+                        // 受击闪烁效果
+                        setTimeout(() => setIsHit(false), 300);
+
+                        // 5秒无敌时间
+                        setIsInvincible(true);
+                        if (invincibleTimerRef.current) clearTimeout(invincibleTimerRef.current);
+                        invincibleTimerRef.current = setTimeout(() => {
+                            setIsInvincible(false);
+                            hitCooldownRef.current = false;
+                            invincibleTimerRef.current = null;
+                        }, INVINCIBLE_DURATION);
+                    }
+
+                    setObstacles([...obsRef.current]);
+
+                    // 游戏结束
+                    if (livesRef.current <= 0) {
+                        setGameState('gameover');
+                        return;
+                    }
+
+                    frameRef.current = requestAnimationFrame(loop);
+                };
+
+                frameRef.current = requestAnimationFrame(loop);
+                return () => {
+                    cancelAnimationFrame(frameRef.current);
+                    if (invincibleTimerRef.current) clearTimeout(invincibleTimerRef.current);
+                };
+            }, [gameState, genObs]);
+
+            // 开始 / 重新开始
+            const startGame = useCallback(() => {
+                const initCh = Math.floor(CHANNEL_COUNT / 2);
+                subChRef.current = initCh;
+                livesRef.current = 3;
+                hitCooldownRef.current = false;
+                canMoveRef.current = true;
+                obsRef.current = [];
+                tickRef.current = 0;
+                distanceRef.current = 0;
+                if (invincibleTimerRef.current) clearTimeout(invincibleTimerRef.current);
+                invincibleTimerRef.current = null;
+                setGameState('playing');
+                setSubChannel(initCh);
+                setSubY(chCenter(initCh));
+                setScore(0);
+                setLives(3);
+                setDistance(0);
+                setIsHit(false);
+                setIsInvincible(false);
+                setObstacles([]);
+            }, []);
+
+            const channelHeight = typeof window !== 'undefined' ? window.innerHeight / CHANNEL_COUNT : 100;
+
+            return (
+                <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+                    <style>{`
+                        @keyframes bubbleUp { 0% { transform: translateY(0); opacity: 0.5; } 100% { transform: translateY(-30px); opacity: 0; } }
+                        @keyframes currentFlow { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }
+                        @keyframes currentLine { 0% { transform: translateX(-50px); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: translateX(50px); opacity: 0; } }
+                        @keyframes tentacle { 0%,100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+                        @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+                        @keyframes invinciblePulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+                    `}</style>
+
+                    {gameState === 'start' && <StartScreen onStart={startGame} />}
+                    {gameState === 'gameover' && <GameOverScreen score={score} distance={distanceRef.current} onRestart={startGame} />}
+
+                    {gameState === 'playing' && (
+                        <>
+                            <OceanBackground distance={distance} />
+                            <Particles count={60} />
+                            <ScoreDisplay score={score} distance={distance} lives={lives} isInvincible={isInvincible} />
+                            <Ship y={subY} isHit={isHit} isInvincible={isInvincible} />
+                            {/* 署名水印 */}
+                            <div style={{
+                                position: 'fixed', top: 20, right: 24,
+                                color: COLORS.watermark, fontSize: 12,
+                                fontFamily: "'Courier New', monospace", letterSpacing: 1,
+                                zIndex: 100, pointerEvents: 'none', userSelect: 'none'
+                            }}>
+                                Developed by 刘梦露的老公
+                            </div>
+
+                            {obstacles.map(obs => {
+                                if (obs.type === 'reef') return <Reef key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} />;
+                                if (obs.type === 'current') return <Current key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} strength={obs.strength} direction={obs.direction} width={obs.width} />;
+                                return <SeaCreature key={obs.id} type={obs.type} x={obs.x} channel={obs.channels[0]} channelHeight={channelHeight} />;
+                            })}
+
+                            {distance > 500 && (
+                                <div style={{
+                                    position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+                                    color: COLORS.bioluminescence, fontSize: 14, opacity: 0.6,
+                                    textShadow: `0 0 10px ${COLORS.bioluminescence}`
+                                }}>
+                                    ⚠ 检测到远洋生物活动区域
+                                </div>
+                            )}
+                            {distance > 1000 && (
+                                <div style={{
+                                    position: 'fixed', bottom: 60, left: '50%', transform: 'translateX(-50%)',
+                                    color: COLORS.warning, fontSize: 12, opacity: 0.5,
+                                    animation: 'pulse 2s ease-in-out infinite'
+                                }}>
+                                    ▓▓▓ 未知海域 ▓▓▓
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<Game />);
+    </script>
+</body>
+</html>
