@@ -7,6 +7,9 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
@@ -16,6 +19,54 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
+
+        // ====== Firebase 初始化 ======
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHO6GLfM7AFmdVnP4EKP_Qx6DpU9XejFU",
+            authDomain: "ocean-voyager-4e192.firebaseapp.com",
+            databaseURL: "https://ocean-voyager-4e192-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "ocean-voyager-4e192",
+            storageBucket: "ocean-voyager-4e192.firebasestorage.app",
+            messagingSenderId: "100101048280",
+            appId: "1:100101048280:web:535c2cf37b99dd22ca54ad",
+            measurementId: "G-3143CCY2KW"
+        };
+        let db = null;
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch (e) { console.warn('Firebase init failed:', e); }
+
+        // 排行榜操作
+        const submitScore = async (name, score, distance) => {
+            if (!db) return;
+            try {
+                const ref = db.ref('leaderboard').push();
+                await ref.set({
+                    name,
+                    score,
+                    distance: Math.floor(distance),
+                    timestamp: Date.now()
+                });
+            } catch (e) { console.warn('Submit score failed:', e); }
+        };
+
+        const fetchLeaderboard = async (limit = 10) => {
+            if (!db) return [];
+            try {
+                const snap = await db.ref('leaderboard')
+                    .orderByChild('score')
+                    .limitToLast(limit)
+                    .once('value');
+                const entries = [];
+                snap.forEach(child => {
+                    entries.push({ id: child.key, ...child.val() });
+                });
+                // Realtime Database orderByChild是升序，需要反转为降序
+                entries.reverse();
+                return entries;
+            } catch (e) { console.warn('Fetch leaderboard failed:', e); return []; }
+        };
 
         const COLORS = {
             // 海洋背景 - 更深邃的靛蓝层次
@@ -357,32 +408,90 @@
             } catch {}
         };
 
+        // 排行榜组件
+        const Leaderboard = ({ entries, highlight }) => (
+            <div style={{
+                width: 320, maxHeight: 260, overflowY: 'auto',
+                background: 'rgba(0,0,0,0.4)', borderRadius: 10,
+                border: '1px solid rgba(77,232,255,0.15)', padding: '12px 16px',
+                marginTop: 10
+            }}>
+                <div style={{ color: COLORS.glow, fontSize: 13, marginBottom: 8, textAlign: 'center', letterSpacing: 2, opacity: 0.8 }}>
+                    全球排行榜 LEADERBOARD
+                </div>
+                {entries.length === 0 && (
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', padding: 10 }}>
+                        暂无记录，成为第一个!
+                    </div>
+                )}
+                {entries.map((e, i) => (
+                    <div key={e.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '4px 0', fontSize: 13,
+                        color: i === 0 ? COLORS.fishGlow : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.6)',
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        background: highlight && e.name === highlight ? 'rgba(77,232,255,0.08)' : 'transparent',
+                        borderRadius: 3
+                    }}>
+                        <span>{i + 1}. {e.name}</span>
+                        <span>{e.score}分 / {e.distance}m</span>
+                    </div>
+                ))}
+            </div>
+        );
+
         // 开始界面
         const StartScreen = ({ onStart }) => {
-            const highScore = getHighScore();
+            const [playerName, setPlayerName] = useState(() => {
+                try { return localStorage.getItem('oceanVoyagerName') || ''; } catch { return ''; }
+            });
+            const [leaderboard, setLeaderboard] = useState([]);
+
+            useEffect(() => { fetchLeaderboard(10).then(setLeaderboard); }, []);
+
+            const handleStart = () => {
+                const name = playerName.trim() || '匿名航海家';
+                try { localStorage.setItem('oceanVoyagerName', name); } catch {}
+                onStart(name);
+            };
+
             return (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-                    background: `radial-gradient(ellipse at center, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 50%, #050a15 100%)`
+                    background: `radial-gradient(ellipse at center, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 50%, #050a15 100%)`,
+                    overflowY: 'auto', padding: '30px 20px'
                 }}>
                     <div style={{ color: COLORS.glow, fontSize: 48, fontWeight: 'bold', textShadow: `0 0 30px rgba(77, 232, 255, 0.5)`, marginBottom: 20, letterSpacing: 8 }}>
                         远 洋 航 行 者
                     </div>
-                    <div style={{ color: COLORS.bioluminescence, fontSize: 18, opacity: 0.8, marginBottom: 50, letterSpacing: 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
+                    <div style={{ color: COLORS.bioluminescence, fontSize: 18, opacity: 0.8, marginBottom: 30, letterSpacing: 4, textShadow: `0 0 10px rgba(128, 255, 212, 0.3)` }}>
                         OCEAN VOYAGER
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 30, textAlign: 'center', lineHeight: 1.8 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 25, textAlign: 'center', lineHeight: 1.8 }}>
                         使用 ↑ ↓ 方向键控制航船<br/>
                         躲避暗流、礁石和海洋生物<br/>
                         航行更远的距离
                     </div>
-                    {highScore > 0 && (
-                        <div style={{ color: COLORS.fishGlow, fontSize: 16, marginBottom: 30, textShadow: `0 0 10px rgba(240, 184, 64, 0.5)` }}>
-                            最高纪录: {highScore} 分
-                        </div>
-                    )}
-                    <button onClick={onStart} style={{
+                    {/* 用户名输入 */}
+                    <div style={{ marginBottom: 20, textAlign: 'center' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 8 }}>输入你的航海名</div>
+                        <input
+                            value={playerName}
+                            onChange={e => setPlayerName(e.target.value.slice(0, 20))}
+                            onKeyDown={e => { if (e.key === 'Enter') handleStart(); }}
+                            placeholder="匿名航海家"
+                            maxLength={20}
+                            style={{
+                                background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(77,232,255,0.3)`,
+                                borderRadius: 6, padding: '8px 16px', color: COLORS.glow,
+                                fontSize: 16, fontFamily: "'Courier New', monospace",
+                                textAlign: 'center', outline: 'none', width: 220,
+                                boxShadow: `0 0 10px rgba(77,232,255,0.1)`
+                            }}
+                        />
+                    </div>
+                    <button onClick={handleStart} style={{
                         background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
                         padding: '15px 50px', fontSize: 18, cursor: 'pointer',
                         fontFamily: "'Courier New', monospace", letterSpacing: 4,
@@ -392,6 +501,8 @@
                     onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
                         起航
                     </button>
+                    {/* 排行榜 */}
+                    <Leaderboard entries={leaderboard} />
                     <div style={{ position: 'absolute', bottom: 50, color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>
                         ↑ ↓ 方向键移动 | 触碰障碍物会失去生命
                     </div>
@@ -400,18 +511,33 @@
         };
 
         // 游戏结束界面
-        const GameOverScreen = ({ score, distance, onRestart }) => {
+        const GameOverScreen = ({ score, distance, playerName, onRestart }) => {
             const highScore = getHighScore();
             const isNewRecord = score > highScore;
-            // 保存分数（在组件渲染时确保保存）
-            useEffect(() => { saveHighScore(score); }, [score]);
+            const [leaderboard, setLeaderboard] = useState([]);
+            const [submitted, setSubmitted] = useState(false);
+
+            // 保存分数到本地 + Firestore
+            useEffect(() => {
+                saveHighScore(score);
+                if (!submitted && playerName) {
+                    submitScore(playerName, score, distance).then(() => {
+                        fetchLeaderboard(10).then(setLeaderboard);
+                    });
+                    setSubmitted(true);
+                } else {
+                    fetchLeaderboard(10).then(setLeaderboard);
+                }
+            }, [score]);
+
             const finalHighScore = isNewRecord ? score : highScore;
 
             return (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-                    background: 'rgba(4, 8, 16, 0.95)'
+                    background: 'rgba(4, 8, 16, 0.95)',
+                    overflowY: 'auto', padding: '30px 20px'
                 }}>
                     <div style={{ color: COLORS.warning, fontSize: 42, fontWeight: 'bold', textShadow: `0 0 20px rgba(255, 107, 107, 0.5)`, marginBottom: 30 }}>
                         航行终止
@@ -432,19 +558,23 @@
                             新纪录!
                         </div>
                     )}
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 50 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 20 }}>
                         最高纪录: {finalHighScore} 分
                     </div>
-                    <button onClick={onRestart} style={{
-                        background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
-                        padding: '15px 50px', fontSize: 18, cursor: 'pointer',
-                        fontFamily: "'Courier New', monospace", letterSpacing: 4,
-                        transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
-                    }}
-                    onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
-                    onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
-                        再次起航
-                    </button>
+                    {/* 排行榜 */}
+                    <Leaderboard entries={leaderboard} highlight={playerName} />
+                    <div style={{ marginTop: 20 }}>
+                        <button onClick={onRestart} style={{
+                            background: 'transparent', border: `2px solid ${COLORS.glow}`, color: COLORS.glow,
+                            padding: '15px 50px', fontSize: 18, cursor: 'pointer',
+                            fontFamily: "'Courier New', monospace", letterSpacing: 4,
+                            transition: 'all 0.3s', boxShadow: `0 0 20px ${COLORS.glow}40`
+                        }}
+                        onMouseEnter={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
+                        onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
+                            再次起航
+                        </button>
+                    </div>
                 </div>
             );
         };
@@ -455,6 +585,7 @@
             const chCenter = (ch) => (ch + 0.5) * chHeight();
 
             const [gameState, setGameState] = useState('start');
+            const [playerName, setPlayerName] = useState('');
             const [subChannel, setSubChannel] = useState(Math.floor(CHANNEL_COUNT / 2));
             const [subY, setSubY] = useState(chCenter(Math.floor(CHANNEL_COUNT / 2)));
             const [score, setScore] = useState(0);
@@ -499,7 +630,7 @@
                         width: 150 + Math.random() * 100, strength: 0.3 + Math.random() * 0.4,
                         direction: Math.random() > 0.5 ? 'left' : 'right' };
                 } else if (type === 'angler') {
-                    return { ...base, channels: randChs(2), hitWidth: 96, speedX: 2 + Math.random() * 2 };
+                    return { ...base, channels: randChs(1), hitWidth: 96, speedX: 2 + Math.random() * 2 };
                 } else {
                     return { ...base, channels: randChs(1), hitWidth: 72, speedX: 3 + Math.random() * 3 };
                 }
@@ -609,7 +740,8 @@
             }, [gameState, genObs]);
 
             // 开始 / 重新开始
-            const startGame = useCallback(() => {
+            const startGame = useCallback((name) => {
+                setPlayerName(name);
                 const initCh = Math.floor(CHANNEL_COUNT / 2);
                 subChRef.current = initCh;
                 livesRef.current = 3;
@@ -645,7 +777,7 @@
                     `}</style>
 
                     {gameState === 'start' && <StartScreen onStart={startGame} />}
-                    {gameState === 'gameover' && <GameOverScreen score={score} distance={distanceRef.current} onRestart={startGame} />}
+                    {gameState === 'gameover' && <GameOverScreen score={score} distance={distanceRef.current} playerName={playerName} onRestart={() => startGame(playerName)} />}
 
                     {gameState === 'playing' && (
                         <>
