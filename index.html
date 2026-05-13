@@ -187,6 +187,64 @@
         const SUB_WIDTH = 80;
         const INVINCIBLE_DURATION = 5000; // 5秒无敌时间
 
+        // ====== 深海生物素材配置 ======
+        const CREATURE_IMG_BASE = 'deep-sea_creatures/merged/';
+        // 每个生物的配置：图片文件名、单帧宽高（从atlas.json取最大帧）、发光色、显示缩放
+        const CREATURE_CONFIG = {
+            // 水母类 - 慢速漂浮
+            jellyfish_1: { img: 'jellyfish_1.png', fw: 35, fh: 31, glow: '#d44a90', scale: 2.2, speed: 2 },
+            jellyfish_2: { img: 'jellyfish_2.png', fw: 31, fh: 29, glow: '#e070c0', scale: 2.2, speed: 2 },
+            jellyfish_3: { img: 'jellyfish_3.png', fw: 25, fh: 32, glow: '#c060a0', scale: 2.4, speed: 1.8 },
+            // 鱼类 - 中速游动
+            clownfish:   { img: 'clownfish.png',   fw: 32, fh: 32, glow: '#f0b840', scale: 2, speed: 4 },
+            coral_fish:  { img: 'coral_fish.png',  fw: 33, fh: 33, glow: '#e8943a', scale: 2, speed: 3.5 },
+            pufferfish:  { img: 'pufferfish.png',  fw: 22, fh: 35, glow: '#e0c040', scale: 2.2, speed: 3 },
+            pufferfish_2:{ img: 'pufferfish_2.png', fw: 31, fh: 31, glow: '#d0a030', scale: 2, speed: 3 },
+            seahorse:    { img: 'seahorse.png',     fw: 39, fh: 27, glow: '#e0a060', scale: 2, speed: 2.5 },
+            // 深海危险类 - 快速或特殊
+            anglerfish:  { img: 'anglerfish.png',   fw: 33, fh: 29, glow: '#40ffa0', scale: 2.5, speed: 2.5 },
+            lanternfish: { img: 'lanternfish.png',  fw: 35, fh: 24, glow: '#40ffa0', scale: 2.5, speed: 3 },
+            dragonfish:  { img: 'dragonfish.png',   fw: 26, fh: 29, glow: '#ff4060', scale: 2.5, speed: 2.8 },
+            // 大型生物 - 占多通道
+            shark:       { img: 'shark.png',        fw: 33, fh: 28, glow: '#8090a0', scale: 3, speed: 5 },
+            swordfish:   { img: 'swordfish.png',    fw: 45, fh: 36, glow: '#7080b0', scale: 2.5, speed: 6 },
+            whale:       { img: 'whale.png',        fw: 34, fh: 30, glow: '#6070a0', scale: 3.5, speed: 2 },
+            manta_ray:   { img: 'manta_ray.png',    fw: 32, fh: 44, glow: '#5080c0', scale: 2.5, speed: 3 },
+            // 头足类
+            octopus:     { img: 'octopus.png',      fw: 32, fh: 32, glow: '#c060d0', scale: 2.2, speed: 2.5 },
+            squid:       { img: 'squid.png',        fw: 20, fh: 34, glow: '#a050c0', scale: 2.5, speed: 3.5 },
+            vampire_squid:{ img: 'vampire_squid.png', fw: 28, fh: 25, glow: '#8030a0', scale: 2.5, speed: 2 },
+            // 其他
+            eal:         { img: 'eal.png',          fw: 30, fh: 32, glow: '#40a060', scale: 2.2, speed: 3 },
+            sea_snake:   { img: 'sea_snake.png',    fw: 30, fh: 31, glow: '#40a060', scale: 2.2, speed: 3.5 },
+            crab:        { img: 'crab.png',         fw: 36, fh: 30, glow: '#d06030', scale: 2, speed: 2 },
+            sea_turtle:  { img: 'sea_turtle.png',   fw: 45, fh: 46, glow: '#40c080', scale: 2, speed: 2 },
+            stingray:    { img: 'stingray.png',     fw: 31, fh: 31, glow: '#5080b0', scale: 2.2, speed: 3 },
+            nautilus:    { img: 'nautilus.png',     fw: 32, fh: 27, glow: '#c0a060', scale: 2.2, speed: 2 },
+        };
+
+        // ====== 海藻植物素材配置 ======
+        const FLORA_IMG_BASE = 'sea flora plant/';
+        const FLORA_CONFIG = {
+            flora_1: { img: 'sea flora plant 1.png', glow: '#30a060', scale: 3 },
+            flora_2: { img: 'sea flora plant 2.png', glow: '#40b070', scale: 3 },
+            flora_3: { img: 'sea flora plant 3.png', glow: '#50c080', scale: 3 },
+            flora_4: { img: 'sea flora plant 4.png', glow: '#60d090', scale: 3 },
+        };
+        const FLORA_TYPES = Object.keys(FLORA_CONFIG);
+
+        // 障碍物类型分组及权重（所有生物占1个通道）
+        const OBS_GROUPS = {
+            jellyfish: { creatures: ['jellyfish_1','jellyfish_2','jellyfish_3'], weight: 0.2, chSize: 1 },
+            fish:      { creatures: ['clownfish','coral_fish','pufferfish','pufferfish_2','seahorse'], weight: 0.2, chSize: 1 },
+            deepfish:  { creatures: ['anglerfish','lanternfish','dragonfish'], weight: 0.1, chSize: 1 },
+            big:       { creatures: ['shark','swordfish','whale','manta_ray'], weight: 0.1, chSize: 1 },
+            cephalopod:{ creatures: ['octopus','squid','vampire_squid'], weight: 0.1, chSize: 1 },
+            other:     { creatures: ['eal','sea_snake','crab','sea_turtle','stingray','nautilus'], weight: 0.1, chSize: 1 },
+            reef:      { creatures: [], weight: 0.1, chSize: 2 },
+            current:   { creatures: [], weight: 0.1, chSize: 2 },
+        };
+
         // 航船组件
         const Ship = ({ y, isHit, isInvincible }) => {
             const mobile = isMobile();
@@ -272,141 +330,112 @@
             </div>
         );}
 
-        // 深海生物组件
-        const SeaCreature = ({ type, x, channel, channelHeight }) => {
+        // 深海生物组件 - 使用图片素材 + 帧动画
+        const SeaCreature = ({ creatureType, x, channel, channelHeight }) => {
+            const cfg = CREATURE_CONFIG[creatureType];
+            if (!cfg) return null;
+            // 固定缩放，所有生物占1个通道
+            const displayW = cfg.fw * cfg.scale;
+            const displayH = cfg.fh * cfg.scale;
+            // 垂直居中于通道
             const y = (channel + 0.5) * channelHeight;
-            const creatures = {
-                jellyfish: (
-                    <svg width="72" height="96" viewBox="0 0 60 80">
-                        <defs>
-                            <radialGradient id="jellyGlow">
-                                <stop offset="0%" stopColor="#f0a0c8" stopOpacity="0.95"/>
-                                <stop offset="50%" stopColor={COLORS.jellyBody} stopOpacity="0.85"/>
-                                <stop offset="100%" stopColor={COLORS.jellyGlow} stopOpacity="0.6"/>
-                            </radialGradient>
-                            <filter id="jellyFilter">
-                                <feGaussianBlur stdDeviation="2" result="blur"/>
-                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                            </filter>
-                        </defs>
-                        <ellipse cx="30" cy="20" rx="25" ry="18" fill="url(#jellyGlow)" filter="url(#jellyFilter)"/>
-                        {[0,1,2,3,4].map(i => (
-                            <path key={i} d={`M${15+i*8} 35 Q${20+i*8} 60 ${15+i*8} 75`}
-                                stroke={COLORS.jellyGlow} strokeWidth="2.5" fill="none" opacity="0.8"
-                                style={{animation: `tentacle 2s ease-in-out infinite`, animationDelay: `${i*0.2}s`}}/>
-                        ))}
-                    </svg>
-                ),
-                fish: (
-                    <svg width="60" height="36" viewBox="0 0 50 30">
-                        <defs>
-                            <radialGradient id="fishGlow">
-                                <stop offset="0%" stopColor={COLORS.fishGlow}/>
-                                <stop offset="100%" stopColor={COLORS.fishBody}/>
-                            </radialGradient>
-                            <filter id="fishFilter">
-                                <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                            </filter>
-                        </defs>
-                        <ellipse cx="25" cy="15" rx="20" ry="10" fill="url(#fishGlow)" filter="url(#fishFilter)"/>
-                        <polygon points="45,15 55,5 55,25" fill={COLORS.fishBody}/>
-                        <circle cx="12" cy="12" r="3" fill={COLORS.fishGlow} opacity="0.9"/>
-                    </svg>
-                ),
-                angler: (
-                    <svg width="96" height="72" viewBox="0 0 80 60">
-                        <defs>
-                            <radialGradient id="anglerBody">
-                                <stop offset="0%" stopColor="#501828"/>
-                                <stop offset="100%" stopColor={COLORS.anglerBody}/>
-                            </radialGradient>
-                        </defs>
-                        <ellipse cx="40" cy="35" rx="30" ry="18" fill="url(#anglerBody)" stroke="#882020" strokeWidth="1.5"/>
-                        <circle cx="22" cy="28" r="5" fill="#dd4040"/>
-                        <circle cx="22" cy="28" r="2" fill="#ee8080"/>
-                        <line x1="35" y1="12" x2="42" y2="0" stroke="#4a3a5a" strokeWidth="3"/>
-                        <circle cx="42" cy="0" r="8" fill={COLORS.anglerGlow} style={{animation: 'pulse 1s ease-in-out infinite'}}/>
-                        <circle cx="42" cy="0" r="4" fill="#ffffff" opacity="0.6" style={{animation: 'pulse 1s ease-in-out infinite'}}/>
-                    </svg>
-                )
-            };
-            const glowColor = type === 'jellyfish' ? COLORS.jellyGlow :
-                              type === 'fish' ? COLORS.fishGlow :
-                              COLORS.anglerGlow;
+            const animName = `sprite_${creatureType}`;
             return (
                 <div style={{
                     position: 'absolute',
                     left: x,
-                    top: y - 48,
+                    top: y - displayH / 2,
+                    width: displayW,
+                    height: displayH,
                     transform: 'scaleX(-1)',
-                    filter: `drop-shadow(0 0 15px ${glowColor}) drop-shadow(0 0 5px ${glowColor})`
+                    filter: `drop-shadow(0 0 12px ${cfg.glow}) drop-shadow(0 0 4px ${cfg.glow})`,
+                    imageRendering: 'pixelated'
                 }}>
-                    {creatures[type]}
+                    <style>{`
+                        @keyframes ${animName} {
+                            0%, 45% { background-position: 0 0; }
+                            50%, 95% { background-position: 0 -${displayH}px; }
+                            100% { background-position: 0 0; }
+                        }
+                    `}</style>
+                    <div style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundImage: `url(${CREATURE_IMG_BASE}${cfg.img})`,
+                        backgroundSize: `${displayW}px ${displayH * 2}px`,
+                        backgroundRepeat: 'no-repeat',
+                        animation: `${animName} 1.2s steps(1) infinite`
+                    }}/>
                 </div>
             );
         };
 
-        // 礁石组件
-        const Reef = ({ x, channels, channelHeight }) => {
+        // 海藻植物组件
+        const Reef = ({ x, channels, channelHeight, floraType }) => {
+            const cfg = FLORA_CONFIG[floraType];
+            if (!cfg) return null;
             const topCh = Math.min(...channels);
             const botCh = Math.max(...channels);
             const top = topCh * channelHeight;
             const h = (botCh - topCh + 1) * channelHeight;
-            const w = 120;
-            return (
-                <div style={{ position: 'absolute', left: x, top, width: w, height: h }}>
-                    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-                        <defs>
-                            <linearGradient id="reefGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor={COLORS.reefLight}/>
-                                <stop offset="50%" stopColor={COLORS.reefDark}/>
-                                <stop offset="100%" stopColor="#1a1008"/>
-                            </linearGradient>
-                            <filter id="reefGlow">
-                                <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                            </filter>
-                        </defs>
-                        <path d={`M0 ${h} L${w*0.2} ${h*0.3} L${w*0.4} ${h*0.5} L${w*0.6} ${h*0.2} L${w*0.8} ${h*0.4} L${w} ${h*0.1} L${w} ${h} Z`}
-                            fill="url(#reefGrad)" stroke={COLORS.reefEdge} strokeWidth="2.5" filter="url(#reefGlow)"/>
-                        <circle cx={w*0.3} cy={h*0.35} r="4" fill="#e07050" opacity="0.8"/>
-                        <circle cx={w*0.5} cy={h*0.25} r="3" fill="#ff9070" opacity="0.7"/>
-                        <circle cx={w*0.7} cy={h*0.38} r="5" fill="#d05535" opacity="0.8"/>
-                    </svg>
-                </div>
-            );
-        };
-
-        // 暗流组件
-        const Current = ({ x, channels, channelHeight, strength, direction, width }) => {
-            const topCh = Math.min(...channels);
-            const botCh = Math.max(...channels);
-            const top = topCh * channelHeight;
-            const h = (botCh - topCh + 1) * channelHeight;
+            // 植物从底部向上生长，宽度按比例
+            const displayH = h;
+            const displayW = h * 0.5; // 宽高比约1:2
             return (
                 <div style={{
-                    position: 'absolute', left: x, top,
-                    width: width || 150, height: h,
-                    background: `linear-gradient(${direction==='left'?'90deg':'270deg'},
-                        transparent 5%,
-                        rgba(79,195,247,${strength*0.25}) 30%,
-                        rgba(79,195,247,${strength*0.45}) 50%,
-                        rgba(79,195,247,${strength*0.25}) 70%,
-                        transparent 95%)`,
-                    animation: 'currentFlow 2s linear infinite', borderRadius: 10,
-                    boxShadow: `0 0 20px rgba(79,195,247,${strength*0.3}), inset 0 0 15px rgba(79,195,247,${strength*0.2})`
+                    position: 'absolute',
+                    left: x,
+                    top: top,
+                    width: displayW,
+                    height: displayH,
+                    filter: `drop-shadow(0 0 10px ${cfg.glow}) drop-shadow(0 0 3px ${cfg.glow})`,
+                    imageRendering: 'pixelated'
                 }}>
-                    {[...Array(Math.ceil(h/40))].map((_,i) => (
-                        <div key={i} style={{
-                            position: 'absolute', width: 40, height: 3,
-                            background: `linear-gradient(${direction==='left'?'90deg':'270deg'}, transparent, ${COLORS.currentGlow}, transparent)`,
-                            top: 20 + i * 40,
-                            animation: 'currentLine 1.5s linear infinite',
-                            animationDelay: `${i*0.2}s`,
-                            borderRadius: 2
-                        }}/>
-                    ))}
+                    <img src={`${FLORA_IMG_BASE}${cfg.img}`}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            objectPosition: 'bottom center'
+                        }}
+                    />
+                </div>
+            );
+        };
+
+        // 涡流组件 - 使用 watertex 帧动画，正方形容器即碰撞区域
+        const Current = ({ x, channels, channelHeight, strength, direction, size }) => {
+            const [frame, setFrame] = useState(0);
+            const topCh = Math.min(...channels);
+            const botCh = Math.max(...channels);
+            const top = topCh * channelHeight;
+            const h = (botCh - topCh + 1) * channelHeight;
+
+            // 帧动画：0→1→2→3→0 循环
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setFrame(f => (f + 1) % 4);
+                }, 200);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div style={{
+                    position: 'absolute', left: x,
+                    top: top + (h - size) / 2,
+                    width: size, height: size,
+                    filter: `drop-shadow(0 0 15px rgba(64,168,216,${strength*0.5})) drop-shadow(0 0 5px rgba(64,168,216,${strength*0.3}))`,
+                    opacity: 0.5 + strength * 0.4
+                }}>
+                    <img src={`watertex/watertex${frame}.png`}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            imageRendering: 'auto',
+                            transform: direction === 'left' ? 'scaleX(-1)' : 'none'
+                        }}
+                    />
                 </div>
             );
         };
@@ -445,19 +474,23 @@
             );
         };
 
-        // 海洋背景
+        // 海洋背景 - 使用 background.png
         const OceanBackground = ({ distance }) => {
             const o = Math.min(distance / 2000, 1);
             return (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                    background: `
-                        radial-gradient(ellipse at 15% 25%, rgba(10,50,90,${0.10+o*0.06}) 0%, transparent 55%),
-                        radial-gradient(ellipse at 85% 75%, rgba(5,40,70,${0.08+o*0.05}) 0%, transparent 55%),
-                        radial-gradient(ellipse at 50% 50%, rgba(15,35,60,${0.04+o*0.03}) 0%, transparent 70%),
-                        linear-gradient(180deg, ${COLORS.midBlue} 0%, ${COLORS.deepBlue} 35%, #020610 100%)
-                    `
-                }}/>
+                    backgroundImage: `url('background.png')`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                }}>
+                    {/* 随距离增加的深海暗化叠加层 */}
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                        background: `rgba(2, 6, 16, ${0.1 + o * 0.25})`
+                    }}/>
+                </div>
             );
         };
 
@@ -601,7 +634,7 @@
                     onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}
                     onTouchStart={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
                     onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
-                        起航
+                        启航
                     </button>
                     {/* 排行榜 */}
                     <Leaderboard entries={leaderboard} />
@@ -677,7 +710,7 @@
                         onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}
                         onTouchStart={e => { e.target.style.background = COLORS.glow; e.target.style.color = '#000'; }}
                         onTouchEnd={e => { e.target.style.background = 'transparent'; e.target.style.color = COLORS.glow; }}>
-                            再次起航
+                            再次启航
                         </button>
                         <button onClick={onHome} style={{
                             background: 'transparent', border: `2px solid rgba(255,255,255,0.3)`, color: 'rgba(255,255,255,0.6)',
@@ -725,34 +758,50 @@
             const invincibleTimerRef = useRef(null);
             const distanceRef = useRef(0); // 保持distance的ref同步，结算时使用
 
-            // 生成障碍物
+            // 生成障碍物 - 使用新的分组系统
             const genObs = useCallback(() => {
-                const types = ['jellyfish','fish','angler','reef','current'];
-                const weights = [0.25, 0.25, 0.1, 0.2, 0.2];
-                let r = Math.random(), type = types[0], cum = 0;
-                for (let i = 0; i < weights.length; i++) { cum += weights[i]; if (r < cum) { type = types[i]; break; } }
+                // 按权重随机选择障碍物组
+                const groupNames = Object.keys(OBS_GROUPS);
+                let r = Math.random(), groupName = groupNames[0], cum = 0;
+                for (const name of groupNames) {
+                    cum += OBS_GROUPS[name].weight;
+                    if (r < cum) { groupName = name; break; }
+                }
+                const group = OBS_GROUPS[groupName];
 
                 const randChs = (size) => {
                     const start = Math.floor(Math.random() * (CHANNEL_COUNT - size + 1));
                     return Array.from({ length: size }, (_, i) => start + i);
                 };
 
-                const base = { id: Date.now() + Math.random(), type, x: window.innerWidth + 50 };
+                const base = { id: Date.now() + Math.random(), x: window.innerWidth + 50 };
 
-                if (type === 'reef') {
+                if (groupName === 'reef') {
                     const size = 2 + Math.floor(Math.random() * 2);
                     const channels = [];
                     for (let i = 0; i < size; i++) channels.push(CHANNEL_COUNT - 1 - i);
-                    return { ...base, channels, hitWidth: 120 };
-                } else if (type === 'current') {
-                    const size = 2 + Math.floor(Math.random() * 2);
-                    return { ...base, channels: randChs(size), hitWidth: 150 + Math.random() * 100,
-                        width: 150 + Math.random() * 100, strength: 0.3 + Math.random() * 0.4,
+                    const floraType = FLORA_TYPES[Math.floor(Math.random() * FLORA_TYPES.length)];
+                    const chH = window.innerHeight / CHANNEL_COUNT;
+                    const hitW = size * chH * 0.25;
+                    return { ...base, type: 'reef', channels, hitWidth: hitW, floraType };
+                } else if (groupName === 'current') {
+                    const chSize = 2 + Math.floor(Math.random() * 2);
+                    const chH = window.innerHeight / CHANNEL_COUNT;
+                    const vortexSize = chSize * chH; // 正方形边长 = 通道高度 × 通道数
+                    return { ...base, type: 'current', channels: randChs(chSize), hitWidth: vortexSize,
+                        size: vortexSize, strength: 0.3 + Math.random() * 0.4,
                         direction: Math.random() > 0.5 ? 'left' : 'right' };
-                } else if (type === 'angler') {
-                    return { ...base, channels: randChs(1), hitWidth: 96, speedX: 2 + Math.random() * 2 };
                 } else {
-                    return { ...base, channels: randChs(1), hitWidth: 72, speedX: 3 + Math.random() * 3 };
+                    // 从该组中随机选一个生物
+                    const creatures = group.creatures;
+                    const creatureType = creatures[Math.floor(Math.random() * creatures.length)];
+                    const cfg = CREATURE_CONFIG[creatureType];
+                    return {
+                        ...base, type: 'creature', creatureType,
+                        channels: randChs(1),
+                        hitWidth: cfg.fw * cfg.scale,
+                        speedX: cfg.speed + Math.random() * 1.5
+                    };
                 }
             }, []);
 
@@ -1092,9 +1141,9 @@
                             </div>
 
                             {obstacles.map(obs => {
-                                if (obs.type === 'reef') return <Reef key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} />;
-                                if (obs.type === 'current') return <Current key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} strength={obs.strength} direction={obs.direction} width={obs.width} />;
-                                return <SeaCreature key={obs.id} type={obs.type} x={obs.x} channel={obs.channels[0]} channelHeight={channelHeight} />;
+                                if (obs.type === 'reef') return <Reef key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} floraType={obs.floraType} />;
+                                if (obs.type === 'current') return <Current key={obs.id} x={obs.x} channels={obs.channels} channelHeight={channelHeight} strength={obs.strength} direction={obs.direction} size={obs.size} />;
+                                return <SeaCreature key={obs.id} creatureType={obs.creatureType} x={obs.x} channel={obs.channels[0]} channelHeight={channelHeight} />;
                             })}
 
                             {distance > 500 && (
