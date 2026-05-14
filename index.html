@@ -198,6 +198,16 @@
         const getGameWidth = () => (isMobile() && isPortrait()) ? window.innerHeight : window.innerWidth;
         const getGameHeight = () => (isMobile() && isPortrait()) ? window.innerWidth : window.innerHeight;
         const getShipScale = () => isMobile() ? 0.7 : 1;
+        // 生物缩放：确保生物不超出通道高度
+        const getCreatureScale = (creatureType) => {
+            const cfg = CREATURE_CONFIG[creatureType];
+            if (!cfg) return 1;
+            const baseH = cfg.fh * cfg.scale;
+            const chH = getGameHeight() / CHANNEL_COUNT;
+            const maxH = chH * 0.85; // 最多占通道85%
+            if (baseH > maxH) return maxH / baseH;
+            return 1;
+        };
         const SUB_X = 80;
         const SUB_WIDTH = 80;
         const INVINCIBLE_DURATION = 5000; // 5秒无敌时间
@@ -348,9 +358,10 @@
         const SeaCreature = ({ creatureType, x, channel, channelHeight }) => {
             const cfg = CREATURE_CONFIG[creatureType];
             if (!cfg) return null;
-            // 固定缩放，所有生物占1个通道
-            const displayW = cfg.fw * cfg.scale;
-            const displayH = cfg.fh * cfg.scale;
+            // 根据通道高度自适应缩放
+            const cScale = getCreatureScale(creatureType);
+            const displayW = cfg.fw * cfg.scale * cScale;
+            const displayH = cfg.fh * cfg.scale * cScale;
             // 垂直居中于通道
             const y = (channel + 0.5) * channelHeight;
             const animName = `sprite_${creatureType}`;
@@ -811,10 +822,11 @@
                     const creatures = group.creatures;
                     const creatureType = creatures[Math.floor(Math.random() * creatures.length)];
                     const cfg = CREATURE_CONFIG[creatureType];
+                    const cScale = getCreatureScale(creatureType);
                     return {
                         ...base, type: 'creature', creatureType,
                         channels: randChs(1),
-                        hitWidth: cfg.fw * cfg.scale,
+                        hitWidth: cfg.fw * cfg.scale * cScale,
                         speedX: cfg.speed + Math.random() * 1.5
                     };
                 }
