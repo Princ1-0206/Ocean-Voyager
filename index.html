@@ -858,6 +858,12 @@
                     // 不拦截输入框等可交互元素的触摸
                     const tag = e.target.tagName.toLowerCase();
                     if (tag === 'input' || tag === 'button' || tag === 'textarea' || tag === 'select') return;
+                    // 不拦截带 data-ui 属性的UI元素（音量键、暂停键等）
+                    let el = e.target;
+                    while (el) {
+                        if (el.getAttribute && el.getAttribute('data-ui') === 'true') return;
+                        el = el.parentElement;
+                    }
                     e.preventDefault();
                     if (!canMoveRef.current) return;
                     const touchX = e.touches[0].clientX;
@@ -1064,6 +1070,7 @@
 
                     {/* BGM 静音按钮 - 全局显示 */}
                     <div
+                        data-ui="true"
                         onClick={toggleBGM}
                         style={{
                             position: 'fixed', bottom: isMobile() ? 12 : 20, right: isMobile() ? 12 : 24,
@@ -1099,6 +1106,7 @@
                             <ScoreDisplay score={score} distance={distance} lives={lives} isInvincible={isInvincible} />
                             {/* 暂停/恢复按钮 */}
                             <div
+                                data-ui="true"
                                 onClick={() => setGameState(prev => prev === 'playing' ? 'paused' : prev === 'paused' ? 'playing' : prev)}
                                 style={{
                                     position: 'fixed', top: isMobile() ? 42 : 48, right: isMobile() ? 12 : 24,
